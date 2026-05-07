@@ -3,7 +3,7 @@ model User {
   name          String
   email         String
   emailVerified Boolean   @default(false)
-  role               Role       @default(CUSTOMER)
+  role               Role       @default(USER)
   status             UserStatus @default(ACTIVE)
   needPasswordChange Boolean    @default(false)
   isDeleted          Boolean    @default(false)
@@ -13,6 +13,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  admin         Admin?
 
   @@unique([email])
   @@index([role])

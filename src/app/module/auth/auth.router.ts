@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { AuthController } from "./auth.controller";
-import { checkAuth } from "../../middleware/checkAuth";
 import { Role } from "../../../generated/prisma/enums";
 import { multerUpload } from "../../config/multer.config";
+import { checkAuth } from "../../middleware/checkAuth";
 
 const router = Router();
 
@@ -11,18 +11,18 @@ router.post("/login", AuthController.loginUser);
 
 router.get(
   "/me",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.CUSTOMER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
   AuthController.getMe,
 );
 router.post("/refresh-token", AuthController.getNewToken);
 router.post(
   "/change-password",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.CUSTOMER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
   AuthController.changePassword,
 );
 router.post(
   "/logout",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.CUSTOMER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
   AuthController.logoutUser,
 );
 
@@ -34,7 +34,7 @@ router.post("/forget-password", AuthController.forgetPassword);
 router.post("/reset-password", AuthController.resetPassword);
 router.patch(
   "/update-profile",
-  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.CUSTOMER),
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.USER),
   multerUpload.single("file"),
   AuthController.updateProfile,
 );

@@ -3,6 +3,7 @@ import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application, Request, Response } from "express";
+import path from "path";
 import qs from "qs";
 import { envVars } from "./app/config/env";
 import { auth } from "./app/lib/auth";
@@ -10,6 +11,10 @@ import { IndexRoutes } from "./app/routes";
 import { requestLogger } from "./app/middleware/requestLogger";
 
 const app: Application = express();
+
+// EJS Setup
+app.set("view engine", "ejs");
+app.set("views", path.join(process.cwd(), "src/app/templates"));
 
 app.set("query parser", (str: string) => qs.parse(str));
 
