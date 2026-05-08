@@ -9,16 +9,9 @@ export const createOrderZodSchema = z.object({
 });
 
 export const updateOrderStatusZodSchema = z.object({
-  status: z.enum([
-    "PENDING",
-    "PAID",
-    "SHIPPED",
-    "COMPLETED",
-    "CANCELLED",
-    "RETURNED",
-  ]),
+  status: z.enum(["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]),
 });
 
 export const updatePaymentStatusZodSchema = z.object({
-  paymentStatus: z.enum(["PENDING", "PAID", "FAILED", "CANCELLED"]),
+  paymentStatus: z.enum(["PENDING", "PAID", "FAILED", "REFUNDED"]),
 });
