@@ -15,3 +15,4 @@
 {"timestamp":"2026-05-08T15:18:51.337Z","method":"POST","endpoint":"/api/v1/auth/register","statusCode":201,"responseTimeMs":4020.78,"ip":"::1","userAgent":"PostmanRuntime/7.54.0"}
 {"timestamp":"2026-05-08T15:20:38.292Z","method":"POST","endpoint":"/api/v1/auth/login","statusCode":200,"responseTimeMs":2657.92,"ip":"::1","userAgent":"PostmanRuntime/7.54.0"}
 {"timestamp":"2026-05-08T15:22:59.533Z","method":"POST","endpoint":"/api/v1/shops","statusCode":201,"responseTimeMs":13011.32,"ip":"::1","userAgent":"PostmanRuntime/7.54.0"}
+{"timestamp":"2026-05-08T15:31:11.893Z","method":"POST","endpoint":"/api/v1/products","statusCode":201,"responseTimeMs":10810.68,"ip":"::1","userAgent":"PostmanRuntime/7.54.0"}
