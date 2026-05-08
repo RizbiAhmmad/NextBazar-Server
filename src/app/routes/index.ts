@@ -7,6 +7,7 @@ import { ProductRoutes } from "../module/product/product.route";
 import { CartRoutes } from "../module/cart/cart.route";
 import { OrderRoutes } from "../module/order/order.route";
 import { ReviewRoutes } from "../module/review/review.route";
+import { AnalyticsRoutes } from "../module/analytics/analytics.route";
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use("/products", ProductRoutes);
 router.use("/cart", CartRoutes);
 router.use("/orders", OrderRoutes);
 router.use("/reviews", ReviewRoutes);
+router.use("/analytics", AnalyticsRoutes);
 
 export const IndexRoutes = router;
