@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { AuthRoutes } from "../module/auth/auth.router";
-import { AdminRoutes } from "../module/admin/admin.route";
 import { CategoryRoutes } from "../module/category/category.route";
 import { ShopRoutes } from "../module/shop/shop.route";
 import { ProductRoutes } from "../module/product/product.route";
@@ -8,6 +7,8 @@ import { CartRoutes } from "../module/cart/cart.route";
 import { OrderRoutes } from "../module/order/order.route";
 import { ReviewRoutes } from "../module/review/review.route";
 import { AnalyticsRoutes } from "../module/analytics/analytics.route";
+import { RagRoutes } from "../module/rag/rag.route";
+import { AdminRoutes } from "../module/admin/admin.route";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use("/cart", CartRoutes);
 router.use("/orders", OrderRoutes);
 router.use("/reviews", ReviewRoutes);
 router.use("/analytics", AnalyticsRoutes);
+router.use("/rag", RagRoutes);
 
 export const IndexRoutes = router;
