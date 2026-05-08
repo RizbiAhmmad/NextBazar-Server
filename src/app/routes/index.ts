@@ -5,6 +5,7 @@ import { CategoryRoutes } from "../module/category/category.route";
 import { ShopRoutes } from "../module/shop/shop.route";
 import { ProductRoutes } from "../module/product/product.route";
 import { CartRoutes } from "../module/cart/cart.route";
+import { OrderRoutes } from "../module/order/order.route";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/categories", CategoryRoutes);
 router.use("/shops", ShopRoutes);
 router.use("/products", ProductRoutes);
 router.use("/cart", CartRoutes);
+router.use("/orders", OrderRoutes);
 
 export const IndexRoutes = router;

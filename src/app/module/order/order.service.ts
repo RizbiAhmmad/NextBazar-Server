@@ -1,0 +1,194 @@
+import status from "http-status";
+import { prisma } from "../../lib/prisma";
+import AppError from "../../errorHelpers/AppError";
+import { OrderStatus, PaymentStatus } from "../../../generated/prisma/enums";
+import { IQueryParams } from "../../interfaces/query.interface";
+import { QueryBuilder } from "../../utils/QueryBuilder";
+
+const COMMISSION_RATE = 0.1; // 10% commission
+
+const createOrder = async (
+  userId: string,
+  payload: {
+    fullName: string;
+    phone: string;
+    address: string;
+    district: string;
+    notes?: string;
+  },
+) => {
+  // 1. Get cart items
+  const cart = await prisma.cart.findUnique({
+    where: { userId },
+    include: {
+      items: {
+        include: {
+          product: true,
+        },
+      },
+    },
+  });
+
+  if (!cart || cart.items.length === 0) {
+    throw new AppError(status.BAD_REQUEST, "Your cart is empty");
+  }
+
+  // 2. Perform Order creation in a Transaction
+  return await prisma.$transaction(async (tx) => {
+    let totalAmount = 0;
+
+    // Verify stock and calculate total
+    for (const item of cart.items) {
+      if (item.product.stock < item.quantity) {
+        throw new AppError(
+          status.BAD_REQUEST,
+          `Insufficient stock for product: ${item.product.name}`,
+        );
+      }
+      totalAmount += item.product.sellPrice * item.quantity;
+    }
+
+    // Create Order
+    const order = await tx.order.create({
+      data: {
+        userId,
+        totalAmount,
+        fullName: payload.fullName,
+        phone: payload.phone,
+        address: payload.address,
+        district: payload.district,
+        notes: payload.notes,
+        orderStatus: OrderStatus.PENDING,
+      },
+    });
+
+    // Create OrderItems and reduce stock
+    for (const item of cart.items) {
+      const itemTotal = item.product.sellPrice * item.quantity;
+      const itemCommission = itemTotal * COMMISSION_RATE;
+      const vendorEarning = itemTotal - itemCommission;
+
+      await tx.orderItem.create({
+        data: {
+          orderId: order.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.product.sellPrice,
+          shopId: item.product.shopId,
+          platformEarning: itemCommission,
+          vendorEarning: vendorEarning,
+        },
+      });
+
+      // Update stock
+      await tx.product.update({
+        where: { id: item.productId },
+        data: {
+          stock: {
+            decrement: item.quantity,
+          },
+        },
+      });
+    }
+
+    // 3. Clear Cart Items
+    await tx.cartItem.deleteMany({
+      where: { cartId: cart.id },
+    });
+
+    return order;
+  });
+};
+
+const getAllOrders = async (queryParams: IQueryParams) => {
+  const orderQuery = new QueryBuilder(prisma.order, queryParams, {
+    searchableFields: ["address", "district", "fullName", "phone"],
+    filterableFields: ["orderStatus", "paymentStatus", "userId"],
+  })
+    .search()
+    .filter()
+    .sort()
+    .paginate()
+    .include({
+      items: {
+        include: {
+          product: true,
+          shop: true,
+        },
+      },
+      user: {
+        select: { id: true, name: true, email: true },
+      },
+    });
+
+  return await orderQuery.execute();
+};
+
+const getOrderById = async (id: string, userId?: string, role?: string) => {
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: {
+      items: {
+        include: {
+          product: true,
+          shop: true,
+        },
+      },
+      user: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new AppError(status.NOT_FOUND, "Order not found");
+  }
+
+  // If not admin, check if the user is the owner
+  if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.userId !== userId) {
+    throw new AppError(status.FORBIDDEN, "Access denied");
+  }
+
+  return order;
+};
+
+const updateOrderStatus = async (id: string, statusValue: OrderStatus) => {
+  return await prisma.order.update({
+    where: { id },
+    data: { orderStatus: statusValue },
+  });
+};
+
+const updatePaymentStatus = async (id: string, paymentStatus: PaymentStatus) => {
+  return await prisma.order.update({
+    where: { id },
+    data: { paymentStatus: paymentStatus },
+  });
+};
+
+const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {
+  const shop = await prisma.shop.findUnique({ where: { vendorId } });
+  if (!shop) throw new AppError(status.NOT_FOUND, "Shop not found");
+
+  const orderItems = await prisma.orderItem.findMany({
+    where: { shopId: shop.id },
+    include: {
+      order: true,
+      product: true,
+    },
+    orderBy: {
+      order: { createdAt: "desc" },
+    },
+  });
+
+  return orderItems;
+};
+
+export const OrderService = {
+  createOrder,
+  getAllOrders,
+  getOrderById,
+  updateOrderStatus,
+  updatePaymentStatus,
+  getVendorOrders,
+};
