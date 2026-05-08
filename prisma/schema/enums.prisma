@@ -11,3 +11,31 @@ enum UserStatus {
   PENDING
   DELETED
 }
+
+enum ShopStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  OUT_OF_STOCK
+  DELETED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}

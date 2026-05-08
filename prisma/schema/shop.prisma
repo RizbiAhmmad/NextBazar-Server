@@ -1,0 +1,23 @@
+model Shop {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  logo        String?
+  banner      String?
+  status      ShopStatus @default(PENDING)
+
+  // Commission rate for this specific shop (overrides global if set)
+  commissionRate Float @default(10) // percentage e.g. 10 = 10%
+
+  // Relations
+  vendorId   String      @unique
+  vendor     User        @relation(fields: [vendorId], references: [id])
+  products   Product[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@map("shops")
+}

@@ -1,0 +1,7 @@
+{"timestamp":"2026-05-08T10:46:52.656Z","method":"POST","endpoint":"/api/v1/auth/register","statusCode":201,"responseTimeMs":4339.32,"ip":"::1","userAgent":"PostmanRuntime/7.53.0"}
+{"timestamp":"2026-05-08T10:49:18.246Z","method":"POST","endpoint":"/api/v1/auth/login","statusCode":200,"responseTimeMs":2546.11,"ip":"::1","userAgent":"PostmanRuntime/7.53.0"}
+{"timestamp":"2026-05-08T10:50:52.231Z","method":"POST","endpoint":"/api/v1/auth/login","statusCode":200,"responseTimeMs":2585.77,"ip":"::1","userAgent":"PostmanRuntime/7.53.0"}
+{"timestamp":"2026-05-08T10:52:01.217Z","method":"POST","endpoint":"/api/v1/auth/refresh-token","statusCode":200,"responseTimeMs":3754.69,"ip":"::1","userAgent":"PostmanRuntime/7.53.0"}
+{"timestamp":"2026-05-08T10:52:41.590Z","method":"POST","endpoint":"/api/v1/auth/logout","statusCode":200,"responseTimeMs":4379.42,"ip":"::1","userAgent":"PostmanRuntime/7.53.0"}
+{"timestamp":"2026-05-08T10:53:30.103Z","method":"POST","endpoint":"/api/v1/auth/login","statusCode":200,"responseTimeMs":2573.66,"ip":"::1","userAgent":"PostmanRuntime/7.53.0"}
+{"timestamp":"2026-05-08T10:53:37.551Z","method":"GET","endpoint":"/api/v1/auth/me","statusCode":200,"responseTimeMs":2489.49,"ip":"::1","userAgent":"PostmanRuntime/7.53.0"}

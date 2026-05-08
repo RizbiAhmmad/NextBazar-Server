@@ -1,0 +1,54 @@
+model Order {
+  id            String        @id @default(uuid())
+  totalAmount   Float
+  paymentStatus PaymentStatus @default(PENDING)
+  orderStatus   OrderStatus   @default(PENDING)
+
+  // Shipping address (structured)
+  fullName      String
+  phone         String
+  address       String
+  district      String
+
+  notes         String?       // Optional customer notes
+
+  // Relations
+  userId String
+  user   User        @relation(fields: [userId], references: [id])
+  items  OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([paymentStatus])
+  @@index([orderStatus])
+  @@index([district])
+  @@map("orders")
+}
+
+model OrderItem {
+  id       String @id @default(uuid())
+  quantity Int
+  price    Float  // Sell price at time of purchase
+
+  // Vendor payout tracking
+  vendorEarning   Float // price * quantity - commission
+  platformEarning Float // commission amount
+
+  // Item fulfillment status (per vendor)
+  status OrderStatus @default(PENDING)
+
+  // Relations
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  shopId    String
+  shop      Shop    @relation(fields: [shopId], references: [id])
+
+  @@index([orderId])
+  @@index([shopId])
+  @@index([productId])
+  @@map("order_items")
+}
