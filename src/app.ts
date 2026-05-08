@@ -9,6 +9,8 @@ import { envVars } from "./app/config/env";
 import { auth } from "./app/lib/auth";
 import { IndexRoutes } from "./app/routes";
 import { requestLogger } from "./app/middleware/requestLogger";
+import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
+import { notFound } from "./app/middleware/notFound";
 
 const app: Application = express();
 
@@ -53,5 +55,8 @@ app.use("/api/v1", IndexRoutes);
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello from Next Bazar Server!");
 });
+
+app.use(notFound);
+app.use(globalErrorHandler);
 
 export default app;

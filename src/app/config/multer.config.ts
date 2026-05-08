@@ -27,7 +27,7 @@ const storage = new CloudinaryStorage({
     const folder = extension === "pdf" ? "pdfs" : "images";
 
     return {
-      folder: `playtube/${folder}`,
+      folder: `nextbazar/${folder}`,
       public_id: uniqueName,
       resource_type: "auto",
     };
