@@ -38,10 +38,9 @@ const getAllCategories = async (queryParams: IQueryParams) => {
   })
     .search()
     .filter()
-    .where({ parentId: null }) // top-level only by default
     .sort()
     .paginate()
-    .include({ subcategories: true })
+    .include({ parent: true, subcategories: true })
     .execute();
 
   return result;

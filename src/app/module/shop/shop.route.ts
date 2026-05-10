@@ -12,13 +12,12 @@ import { multerUpload } from "../../config/multer.config";
 
 const router = Router();
 
-// Public route
-router.get("/:id", ShopController.getShopById);
+// Public route (Moved to the bottom to prevent intercepting /my-shop)
 
 // SELLER specific routes
 router.post(
   "/",
-  checkAuth(Role.SELLER),
+  checkAuth(Role.SELLER, Role.USER),
   multerUpload.fields([
     { name: "logo", maxCount: 1 },
     { name: "banner", maxCount: 1 },
@@ -38,6 +37,10 @@ router.get(
   checkAuth(Role.SELLER),
   ShopController.getMyShop,
 );
+
+// Public route
+router.get("/:id", ShopController.getShopById);
+
 
 router.patch(
   "/:id",

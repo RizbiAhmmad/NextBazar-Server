@@ -38,6 +38,18 @@ const getAdminAnalytics = async () => {
     },
   });
 
+  // Get product count by category
+  const categoryDistribution = await prisma.category.findMany({
+    select: {
+      name: true,
+      _count: {
+        select: {
+          products: true,
+        },
+      },
+    },
+  });
+
   return {
     summary: {
       totalUsers,
@@ -47,7 +59,8 @@ const getAdminAnalytics = async () => {
       totalOrders,
       totalRevenue: orderStats._sum.totalAmount || 0,
     },
-    monthlyRevenue, // Frontend can process this for charts
+    monthlyRevenue,
+    categoryDistribution,
   };
 };
 
@@ -96,7 +109,45 @@ const getVendorAnalytics = async (vendorId: string) => {
   };
 };
 
+const getUserAnalytics = async (userId: string) => {
+  const [totalOrders, orderStats, recentOrders] = await Promise.all([
+    prisma.order.count({ where: { userId } }),
+    prisma.order.aggregate({
+      where: { userId },
+      _sum: {
+        totalAmount: true,
+      },
+    }),
+    prisma.order.findMany({
+      where: { userId },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                name: true,
+                images: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+  ]);
+
+  return {
+    summary: {
+      totalOrders,
+      totalSpending: orderStats._sum.totalAmount || 0,
+    },
+    recentOrders,
+  };
+};
+
 export const AnalyticsService = {
   getAdminAnalytics,
   getVendorAnalytics,
+  getUserAnalytics,
 };

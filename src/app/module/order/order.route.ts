@@ -25,11 +25,18 @@ router.get(
   OrderController.getMyOrders,
 );
 
-// Get Vendor's orders
+// Seller/Vendor routes
 router.get(
   "/vendor-orders",
   checkAuth(Role.SELLER),
   OrderController.getVendorOrders,
+);
+
+router.patch(
+  "/items/:id/status",
+  checkAuth(Role.SELLER),
+  validateRequest(updateOrderStatusZodSchema),
+  OrderController.updateOrderItemStatus,
 );
 
 // Admin only routes
@@ -51,6 +58,12 @@ router.patch(
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   validateRequest(updatePaymentStatusZodSchema),
   OrderController.updatePaymentStatus,
+);
+
+router.delete(
+  "/:id",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  OrderController.deleteOrder,
 );
 
 // Get single order detail

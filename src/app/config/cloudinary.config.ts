@@ -46,7 +46,7 @@ export const uploadFileToCloudinary = async (
         {
           resource_type: "auto",
           public_id: uniqueName,
-          folder: `playtube/${folder}`,
+          folder: `nextbazar/${folder}`,
           access_mode: "public",
         },
         (error, result) => {

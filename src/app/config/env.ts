@@ -71,7 +71,6 @@ const loadEnvVariables = (): EnvConfig => {
     "CLOUDINARY_API_SECRET",
     "SUPER_ADMIN_EMAIL",
     "SUPER_ADMIN_PASSWORD",
-    "STRIPE_WEBHOOK_SECRET",
     "SUPER_ADMIN_EMAIL",
     "SUPER_ADMIN_PASSWORD",
   ];

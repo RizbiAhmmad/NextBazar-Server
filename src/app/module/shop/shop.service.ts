@@ -31,6 +31,16 @@ const getAllShops = async (queryParams: IQueryParams) => {
     searchableFields: ["name"],
     filterableFields: ["status"],
   })
+    .include({
+      vendor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    })
     .search()
     .filter()
     .sort()

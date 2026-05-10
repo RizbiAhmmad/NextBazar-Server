@@ -11,6 +11,12 @@ const router = Router();
 
 router.get("/product/:productId", ReviewController.getProductReviews);
 
+router.get(
+  "/my-reviews",
+  checkAuth(Role.USER, Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN),
+  ReviewController.getMyReviews,
+);
+
 router.post(
   "/",
   checkAuth(Role.USER, Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN),

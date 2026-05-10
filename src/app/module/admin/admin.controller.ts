@@ -105,6 +105,17 @@ const changeUserRole = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdminService.getStats();
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Admin stats fetched successfully",
+    data: result,
+  });
+});
+
 export const AdminController = {
   getAllAdmins,
   updateAdmin,
@@ -114,4 +125,5 @@ export const AdminController = {
   changeUserRole,
   getAllUsers,
   deleteUser,
+  getStats,
 };

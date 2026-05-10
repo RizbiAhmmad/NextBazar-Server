@@ -17,4 +17,10 @@ router.get(
   AnalyticsController.getVendorAnalytics,
 );
 
+router.get(
+  "/user",
+  checkAuth(Role.USER),
+  AnalyticsController.getUserAnalytics,
+);
+
 export const AnalyticsRoutes = router;

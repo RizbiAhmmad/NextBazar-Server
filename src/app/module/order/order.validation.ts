@@ -6,6 +6,12 @@ export const createOrderZodSchema = z.object({
   address: z.string().min(1, "Address is required"),
   district: z.string().min(1, "District is required"),
   notes: z.string().optional(),
+  items: z.array(
+    z.object({
+      productId: z.string().uuid(),
+      quantity: z.number().int().positive(),
+    })
+  ).optional(),
 });
 
 export const updateOrderStatusZodSchema = z.object({

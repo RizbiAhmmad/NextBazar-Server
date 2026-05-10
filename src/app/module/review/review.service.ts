@@ -65,6 +65,18 @@ const getProductReviews = async (productId: string) => {
   });
 };
 
+const getMyReviews = async (userId: string) => {
+  return await prisma.review.findMany({
+    where: { userId },
+    include: {
+      product: {
+        select: { name: true, images: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
 const deleteReview = async (userId: string, reviewId: string, role: string) => {
   const review = await prisma.review.findUnique({
     where: { id: reviewId },
@@ -86,4 +98,5 @@ export const ReviewService = {
   createReview,
   getProductReviews,
   deleteReview,
+  getMyReviews,
 };

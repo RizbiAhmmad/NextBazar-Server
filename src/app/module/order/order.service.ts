@@ -15,22 +15,49 @@ const createOrder = async (
     address: string;
     district: string;
     notes?: string;
+    items?: { productId: string; quantity: number }[];
   },
 ) => {
-  // 1. Get cart items
-  const cart = await prisma.cart.findUnique({
-    where: { userId },
-    include: {
-      items: {
-        include: {
-          product: true,
+  let orderItemsToProcess: { productId: string; quantity: number; product: any }[] = [];
+  let isFromCart = false;
+
+  // 1. Determine items to process
+  if (payload.items && payload.items.length > 0) {
+    // Direct items (Buy Now)
+    for (const item of payload.items) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId },
+      });
+      if (!product) throw new AppError(status.NOT_FOUND, `Product not found: ${item.productId}`);
+      orderItemsToProcess.push({
+        productId: item.productId,
+        quantity: item.quantity,
+        product,
+      });
+    }
+  } else {
+    // Items from Cart
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  if (!cart || cart.items.length === 0) {
-    throw new AppError(status.BAD_REQUEST, "Your cart is empty");
+    if (!cart || cart.items.length === 0) {
+      throw new AppError(status.BAD_REQUEST, "Your cart is empty");
+    }
+    
+    orderItemsToProcess = cart.items.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity,
+      product: item.product
+    }));
+    isFromCart = true;
   }
 
   // 2. Perform Order creation in a Transaction
@@ -38,7 +65,7 @@ const createOrder = async (
     let totalAmount = 0;
 
     // Verify stock and calculate total
-    for (const item of cart.items) {
+    for (const item of orderItemsToProcess) {
       if (item.product.stock < item.quantity) {
         throw new AppError(
           status.BAD_REQUEST,
@@ -63,7 +90,7 @@ const createOrder = async (
     });
 
     // Create OrderItems and reduce stock
-    for (const item of cart.items) {
+    for (const item of orderItemsToProcess) {
       const itemTotal = item.product.sellPrice * item.quantity;
       const itemCommission = itemTotal * COMMISSION_RATE;
       const vendorEarning = itemTotal - itemCommission;
@@ -91,10 +118,15 @@ const createOrder = async (
       });
     }
 
-    // 3. Clear Cart Items
-    await tx.cartItem.deleteMany({
-      where: { cartId: cart.id },
-    });
+    // 3. Clear Cart Items only if order was from cart
+    if (isFromCart) {
+      const cart = await tx.cart.findUnique({ where: { userId } });
+      if (cart) {
+        await tx.cartItem.deleteMany({
+          where: { cartId: cart.id },
+        });
+      }
+    }
 
     return order;
   });
@@ -166,6 +198,28 @@ const updatePaymentStatus = async (id: string, paymentStatus: PaymentStatus) => 
   });
 };
 
+const updateOrderItemStatus = async (
+  itemId: string,
+  statusValue: OrderStatus,
+  vendorId: string
+) => {
+  const shop = await prisma.shop.findUnique({ where: { vendorId } });
+  if (!shop) throw new AppError(status.NOT_FOUND, "Shop not found");
+
+  const orderItem = await prisma.orderItem.findUnique({
+    where: { id: itemId },
+  });
+
+  if (!orderItem || orderItem.shopId !== shop.id) {
+    throw new AppError(status.FORBIDDEN, "Access denied to this order item");
+  }
+
+  return await prisma.orderItem.update({
+    where: { id: itemId },
+    data: { status: statusValue },
+  });
+};
+
 const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {
   const shop = await prisma.shop.findUnique({ where: { vendorId } });
   if (!shop) throw new AppError(status.NOT_FOUND, "Shop not found");
@@ -184,6 +238,20 @@ const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {
   return orderItems;
 };
 
+const deleteOrder = async (id: string) => {
+  return await prisma.$transaction(async (tx) => {
+    // Delete order items first
+    await tx.orderItem.deleteMany({
+      where: { orderId: id },
+    });
+
+    // Delete the order
+    return await tx.order.delete({
+      where: { id },
+    });
+  });
+};
+
 export const OrderService = {
   createOrder,
   getAllOrders,
@@ -191,4 +259,6 @@ export const OrderService = {
   updateOrderStatus,
   updatePaymentStatus,
   getVendorOrders,
+  deleteOrder,
+  updateOrderItemStatus,
 };

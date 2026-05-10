@@ -44,8 +44,51 @@ const createProduct = async (vendorId: string, payload: any) => {
 };
 
 const getAllProducts = async (queryParams: IQueryParams) => {
-  const productQuery = new QueryBuilder(prisma.product, queryParams, {
-    searchableFields: ["name", "description", "tags"],
+  const { minPrice, maxPrice, categoryId, sortBy, ...remainingQuery } = queryParams;
+
+  const filter: any = { ...remainingQuery };
+
+  // Default to ACTIVE products for general listing
+  if (!filter.status) {
+    filter.status = ProductStatus.ACTIVE;
+  }
+
+  if (minPrice || maxPrice) {
+    filter.sellPrice = {};
+    if (minPrice) filter.sellPrice.gte = Number(minPrice);
+    if (maxPrice) filter.sellPrice.lte = Number(maxPrice);
+  }
+
+  if (categoryId) {
+    if (Array.isArray(categoryId)) {
+      filter.categoryId = { in: categoryId };
+    } else if (typeof categoryId === "string" && categoryId.includes(",")) {
+      filter.categoryId = { in: categoryId.split(",") };
+    } else {
+      filter.categoryId = categoryId;
+    }
+  }
+
+  // Map sortBy values
+  if (sortBy) {
+    if (sortBy === "price_asc") {
+      filter.sortBy = "sellPrice";
+      filter.sortOrder = "asc";
+    } else if (sortBy === "price_desc") {
+      filter.sortBy = "sellPrice";
+      filter.sortOrder = "desc";
+    } else if (sortBy === "newest") {
+      filter.sortBy = "createdAt";
+      filter.sortOrder = "desc";
+    } else if (sortBy === "popularity") {
+      filter.sortBy = "reviews"; 
+      filter.sortOrder = "desc";
+    }
+  }
+
+
+  const productQuery = new QueryBuilder(prisma.product, filter, {
+    searchableFields: ["name", "description"],
     filterableFields: ["categoryId", "shopId", "status", "sellPrice"],
   })
     .search()

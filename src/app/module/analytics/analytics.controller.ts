@@ -28,7 +28,21 @@ const getVendorAnalytics = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getUserAnalytics = catchAsync(async (req: Request, res: Response) => {
+  const result = await AnalyticsService.getUserAnalytics(
+    req.user.userId as string,
+  );
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "User analytics fetched successfully",
+    data: result,
+  });
+});
+
 export const AnalyticsController = {
   getAdminAnalytics,
   getVendorAnalytics,
+  getUserAnalytics,
 };

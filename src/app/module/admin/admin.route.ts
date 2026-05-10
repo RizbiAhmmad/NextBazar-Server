@@ -15,6 +15,12 @@ router.get(
 );
 
 router.get(
+  "/stats",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AdminController.getStats,
+);
+
+router.get(
   "/users/all",
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   AdminController.getAllUsers,
