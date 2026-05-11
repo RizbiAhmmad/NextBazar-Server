@@ -11,4 +11,13 @@ router.post(
   AIController.generateProductData,
 );
 
+// Public route — no auth needed, called from product detail pages
+router.post("/recommendations", AIController.getRecommendations);
+
+router.post(
+  "/analyze-business",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AIController.analyzeBusiness,
+);
+
 export const AIRoutes = router;

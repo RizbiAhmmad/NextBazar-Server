@@ -149,7 +149,7 @@ var require_ms = __commonJS({
 import { toNodeHandler } from "better-auth/node";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import express from "express";
+import express2 from "express";
 import path4 from "path";
 import qs from "qs";
 
@@ -3225,7 +3225,8 @@ var createOrder = async (userId, payload) => {
     const order = await tx.order.create({
       data: {
         userId,
-        totalAmount,
+        totalAmount: totalAmount + 60,
+        // Adding 60 TK shipping charge
         fullName: payload.fullName,
         phone: payload.phone,
         address: payload.address,
@@ -3305,7 +3306,10 @@ var getOrderById = async (id, userId, role) => {
     throw new AppError_default(status15.NOT_FOUND, "Order not found");
   }
   if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.userId !== userId) {
-    throw new AppError_default(status15.FORBIDDEN, "Access denied");
+    const isVendorOfItem = order.items.some((item) => item.shop.vendorId === userId);
+    if (!isVendorOfItem) {
+      throw new AppError_default(status15.FORBIDDEN, "Access denied");
+    }
   }
   return order;
 };
@@ -3330,10 +3334,15 @@ var updateOrderItemStatus = async (itemId, statusValue, vendorId) => {
   if (!orderItem || orderItem.shopId !== shop.id) {
     throw new AppError_default(status15.FORBIDDEN, "Access denied to this order item");
   }
-  return await prisma2.orderItem.update({
+  const updatedItem = await prisma2.orderItem.update({
     where: { id: itemId },
     data: { status: statusValue }
   });
+  await prisma2.order.update({
+    where: { id: orderItem.orderId },
+    data: { orderStatus: statusValue }
+  });
+  return updatedItem;
 };
 var getVendorOrders = async (vendorId, queryParams) => {
   const shop = await prisma2.shop.findUnique({ where: { vendorId } });
@@ -4708,19 +4717,69 @@ router10.delete(
 );
 var AdminRoutes = router10;
 
+// src/app/module/ai/ai.route.ts
+import express from "express";
+
+// src/app/module/ai/ai.controller.ts
+import status23 from "http-status";
+
+// src/app/module/ai/ai.service.ts
+var generateProductData = async (title) => {
+  const llmService = new LLMService();
+  const prompt = `You are an expert e-commerce copywriter. Based on the product title '${title}', generate a detailed and engaging product description and SEO tags.
+  
+  Return the response as a JSON object with the following fields:
+  1. 'description': A detailed HTML formatted description (using <p>, <ul>, <li>, <strong> tags) including features and benefits.
+  2. 'shortDescription': A catchy 1-2 sentence summary for social media or preview.
+  3. 'tags': An array of 5 SEO-friendly search keywords.
+  
+  Return ONLY the JSON object. Do not include markdown code blocks.`;
+  const response = await llmService.generateResponse(prompt, [], true);
+  const cleanedResponse = response.replace(/```json|```/g, "").trim();
+  return JSON.parse(cleanedResponse);
+};
+var AIService = {
+  generateProductData
+};
+
+// src/app/module/ai/ai.controller.ts
+var generateProductData2 = catchAsync(async (req, res) => {
+  const { title } = req.body;
+  const result = await AIService.generateProductData(title);
+  sendResponse(res, {
+    httpStatusCode: status23.OK,
+    success: true,
+    message: "Product data generated successfully",
+    data: result
+  });
+});
+var AIController = {
+  generateProductData: generateProductData2
+};
+
+// src/app/module/ai/ai.route.ts
+var router11 = express.Router();
+router11.post(
+  "/generate-product-data",
+  checkAuth(Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN),
+  AIController.generateProductData
+);
+var AIRoutes = router11;
+
 // src/app/routes/index.ts
-var router11 = Router11();
-router11.use("/auth", AuthRoutes);
-router11.use("/admin", AdminRoutes);
-router11.use("/categories", CategoryRoutes);
-router11.use("/shops", ShopRoutes);
-router11.use("/products", ProductRoutes);
-router11.use("/cart", CartRoutes);
-router11.use("/orders", OrderRoutes);
-router11.use("/reviews", ReviewRoutes);
-router11.use("/analytics", AnalyticsRoutes);
-router11.use("/rag", RagRoutes);
-var IndexRoutes = router11;
+var router12 = Router11();
+router12.use("/auth", AuthRoutes);
+router12.use("/admin", AdminRoutes);
+router12.use("/categories", CategoryRoutes);
+router12.use("/shops", ShopRoutes);
+router12.use("/products", ProductRoutes);
+router12.use("/cart", CartRoutes);
+router12.use("/orders", OrderRoutes);
+router12.use("/reviews", ReviewRoutes);
+router12.use("/analytics", AnalyticsRoutes);
+router12.use("/rag", RagRoutes);
+router12.use("/ai", AIRoutes);
+var IndexRoutes = router12;
 
 // src/app/middleware/requestLogger.ts
 import fs from "fs/promises";
@@ -4757,46 +4816,46 @@ var requestLogger = async (req, res, next) => {
 };
 
 // src/app/middleware/globalErrorHandler.ts
-import status25 from "http-status";
+import status26 from "http-status";
 import z8 from "zod";
 
 // src/app/errorHelpers/handlePrismaErrors.ts
-import status23 from "http-status";
+import status24 from "http-status";
 var getStatusCodeFromPrismaError = (errorCode) => {
   if (errorCode === "P2002") {
-    return status23.CONFLICT;
+    return status24.CONFLICT;
   }
   if (["P2025", "P2001", "P2015", "P2018"].includes(errorCode)) {
-    return status23.NOT_FOUND;
+    return status24.NOT_FOUND;
   }
   if (["P1000", "P6002"].includes(errorCode)) {
-    return status23.UNAUTHORIZED;
+    return status24.UNAUTHORIZED;
   }
   if (["P1010", "P6010"].includes(errorCode)) {
-    return status23.FORBIDDEN;
+    return status24.FORBIDDEN;
   }
   if (errorCode === "P6003") {
-    return status23.PAYMENT_REQUIRED;
+    return status24.PAYMENT_REQUIRED;
   }
   if (["P1008", "P2004", "P6004"].includes(errorCode)) {
-    return status23.GATEWAY_TIMEOUT;
+    return status24.GATEWAY_TIMEOUT;
   }
   if (errorCode === "P5011") {
-    return status23.TOO_MANY_REQUESTS;
+    return status24.TOO_MANY_REQUESTS;
   }
   if (errorCode === "P6009") {
     return 413;
   }
   if (errorCode.startsWith("P1") || ["P2024", "P2037", "P6008"].includes(errorCode)) {
-    return status23.SERVICE_UNAVAILABLE;
+    return status24.SERVICE_UNAVAILABLE;
   }
   if (errorCode.startsWith("P2")) {
-    return status23.BAD_REQUEST;
+    return status24.BAD_REQUEST;
   }
   if (errorCode.startsWith("P3") || errorCode.startsWith("P4")) {
-    return status23.INTERNAL_SERVER_ERROR;
+    return status24.INTERNAL_SERVER_ERROR;
   }
-  return status23.INTERNAL_SERVER_ERROR;
+  return status24.INTERNAL_SERVER_ERROR;
 };
 var formatErrorMeta = (meta) => {
   if (!meta) return "";
@@ -4866,7 +4925,7 @@ var handlePrismaClientUnknownError = (error) => {
   ];
   return {
     success: false,
-    statusCode: status23.INTERNAL_SERVER_ERROR,
+    statusCode: status24.INTERNAL_SERVER_ERROR,
     message: `Prisma Client Unknown Request Error: ${mainMessage}`,
     errorSources
   };
@@ -4887,13 +4946,13 @@ var handlePrismaClientValidationError = (error) => {
   });
   return {
     success: false,
-    statusCode: status23.BAD_REQUEST,
+    statusCode: status24.BAD_REQUEST,
     message: `Prisma Client Validation Error: ${mainMessage}`,
     errorSources
   };
 };
 var handlerPrismaClientInitializationError = (error) => {
-  const statusCode = error.errorCode ? getStatusCodeFromPrismaError(error.errorCode) : status23.SERVICE_UNAVAILABLE;
+  const statusCode = error.errorCode ? getStatusCodeFromPrismaError(error.errorCode) : status24.SERVICE_UNAVAILABLE;
   const cleanMessage = error.message;
   cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
   const lines = cleanMessage.split("\n").filter((line) => line.trim());
@@ -4920,16 +4979,16 @@ var handlerPrismaClientRustPanicError = () => {
   ];
   return {
     success: false,
-    statusCode: status23.INTERNAL_SERVER_ERROR,
+    statusCode: status24.INTERNAL_SERVER_ERROR,
     message: "Prisma Client Rust Panic Error: The database engine crashed due to a fatal error.",
     errorSources
   };
 };
 
 // src/app/errorHelpers/handleZodError.ts
-import status24 from "http-status";
+import status25 from "http-status";
 var handleZodError = (err) => {
-  const statusCode = status24.BAD_REQUEST;
+  const statusCode = status25.BAD_REQUEST;
   const message = "Zod Validation Error";
   const errorSources = [];
   err.issues.forEach((issue) => {
@@ -4994,7 +5053,7 @@ var globalErrorHandler = async (err, req, res, next) => {
   }
   await deleteUploadedFilesFromGlobalErrorHandler(req);
   let errorSources = [];
-  let statusCode = status25.INTERNAL_SERVER_ERROR;
+  let statusCode = status26.INTERNAL_SERVER_ERROR;
   let message = "Internal Server Error";
   let stack = void 0;
   if (err instanceof prismaNamespace_exports.PrismaClientKnownRequestError) {
@@ -5044,7 +5103,7 @@ var globalErrorHandler = async (err, req, res, next) => {
       }
     ];
   } else if (err instanceof Error) {
-    statusCode = status25.INTERNAL_SERVER_ERROR;
+    statusCode = status26.INTERNAL_SERVER_ERROR;
     message = err.message;
     stack = err.stack;
     errorSources = [
@@ -5065,16 +5124,16 @@ var globalErrorHandler = async (err, req, res, next) => {
 };
 
 // src/app/middleware/notFound.ts
-import status26 from "http-status";
+import status27 from "http-status";
 var notFound = (req, res) => {
-  res.status(status26.NOT_FOUND).json({
+  res.status(status27.NOT_FOUND).json({
     success: false,
     message: `Route ${req.originalUrl} not found`
   });
 };
 
 // src/app.ts
-var app = express();
+var app = express2();
 app.set("view engine", "ejs");
 app.set("views", path4.join(process.cwd(), "src/app/templates"));
 app.set("query parser", (str) => qs.parse(str));
@@ -5093,8 +5152,8 @@ app.use(
   })
 );
 app.use("/api/auth", toNodeHandler(auth));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express2.urlencoded({ extended: true }));
+app.use(express2.json());
 app.use(cookieParser());
 app.use("/api/v1", IndexRoutes);
 app.get("/", (req, res) => {

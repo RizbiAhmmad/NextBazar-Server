@@ -16,6 +16,31 @@ const generateProductData = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getRecommendations = catchAsync(async (req: Request, res: Response) => {
+  const { productId } = req.body;
+  const result = await AIService.getRecommendations(productId);
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Recommendations fetched successfully",
+    data: result,
+  });
+});
+
+const analyzeBusiness = catchAsync(async (req: Request, res: Response) => {
+  const result = await AIService.analyzeBusiness();
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Business insights generated successfully",
+    data: result,
+  });
+});
+
 export const AIController = {
   generateProductData,
+  getRecommendations,
+  analyzeBusiness,
 };
