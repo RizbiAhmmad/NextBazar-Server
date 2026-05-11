@@ -79,7 +79,7 @@ const createOrder = async (
     const order = await tx.order.create({
       data: {
         userId,
-        totalAmount,
+        totalAmount: totalAmount + 60, // Adding 60 TK shipping charge
         fullName: payload.fullName,
         phone: payload.phone,
         address: payload.address,
@@ -176,9 +176,12 @@ const getOrderById = async (id: string, userId?: string, role?: string) => {
     throw new AppError(status.NOT_FOUND, "Order not found");
   }
 
-  // If not admin, check if the user is the owner
+  // If not admin, check if the user is the owner or a vendor of an item in the order
   if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.userId !== userId) {
-    throw new AppError(status.FORBIDDEN, "Access denied");
+    const isVendorOfItem = order.items.some(item => item.shop.vendorId === userId);
+    if (!isVendorOfItem) {
+      throw new AppError(status.FORBIDDEN, "Access denied");
+    }
   }
 
   return order;
@@ -214,10 +217,20 @@ const updateOrderItemStatus = async (
     throw new AppError(status.FORBIDDEN, "Access denied to this order item");
   }
 
-  return await prisma.orderItem.update({
+  const updatedItem = await prisma.orderItem.update({
     where: { id: itemId },
     data: { status: statusValue },
   });
+
+  // Also update the main order status to match the item status
+  // In a more complex system, we would check if all items are shipped/delivered
+  // but for now, we propagate the status to give immediate feedback to the user
+  await prisma.order.update({
+    where: { id: orderItem.orderId },
+    data: { orderStatus: statusValue },
+  });
+
+  return updatedItem;
 };
 
 const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {

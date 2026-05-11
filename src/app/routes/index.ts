@@ -9,6 +9,7 @@ import { ReviewRoutes } from "../module/review/review.route";
 import { AnalyticsRoutes } from "../module/analytics/analytics.route";
 import { RagRoutes } from "../module/rag/rag.route";
 import { AdminRoutes } from "../module/admin/admin.route";
+import { AIRoutes } from "../module/ai/ai.route";
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use("/orders", OrderRoutes);
 router.use("/reviews", ReviewRoutes);
 router.use("/analytics", AnalyticsRoutes);
 router.use("/rag", RagRoutes);
+router.use("/ai", AIRoutes);
 
 export const IndexRoutes = router;
