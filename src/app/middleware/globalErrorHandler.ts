@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import * as Sentry from "@sentry/node";
 import { NextFunction, Request, Response } from "express";
 import status from "http-status";
 import z from "zod";
@@ -25,6 +26,11 @@ export const globalErrorHandler = async (
 ) => {
   if (envVars.NODE_ENV === "development") {
     console.log("Error from Global Error Handler", err);
+  }
+
+  // Capture exception in Sentry
+  if (envVars.SENTRY_DSN) {
+    Sentry.captureException(err);
   }
 
   // if(req.file){

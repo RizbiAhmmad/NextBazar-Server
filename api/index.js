@@ -4721,9 +4721,10 @@ var AdminRoutes = router10;
 import express from "express";
 
 // src/app/module/ai/ai.controller.ts
-import status23 from "http-status";
+import status24 from "http-status";
 
 // src/app/module/ai/ai.service.ts
+import status23 from "http-status";
 var generateProductData = async (title) => {
   const llmService = new LLMService();
   const prompt = `You are an expert e-commerce copywriter. Based on the product title '${title}', generate a detailed and engaging product description and SEO tags.
@@ -4738,8 +4739,171 @@ var generateProductData = async (title) => {
   const cleanedResponse = response.replace(/```json|```/g, "").trim();
   return JSON.parse(cleanedResponse);
 };
+var getRecommendations = async (productId) => {
+  const currentProduct = await prisma2.product.findUnique({
+    where: { id: productId },
+    include: { category: true }
+  });
+  if (!currentProduct) {
+    throw new AppError_default(status23.NOT_FOUND, "Product not found");
+  }
+  const candidateProducts = await prisma2.product.findMany({
+    where: {
+      categoryId: currentProduct.categoryId,
+      id: { not: productId },
+      stock: { gt: 0 }
+    },
+    take: 20,
+    select: {
+      id: true,
+      name: true,
+      shortDescription: true,
+      sellPrice: true,
+      images: true,
+      tags: true
+    }
+  });
+  if (candidateProducts.length === 0) {
+    return [];
+  }
+  const llmService = new LLMService();
+  const candidateList = candidateProducts.map(
+    (p, i) => `${i + 1}. ID: ${p.id} | Name: ${p.name} | Tags: ${p.tags?.join(", ")}`
+  ).join("\n");
+  const prompt = `You are an AI recommendation engine for an e-commerce platform.
+
+A customer is viewing this product:
+- Name: "${currentProduct.name}"
+- Category: "${currentProduct.category?.name}"
+- Tags: "${currentProduct.tags?.join(", ")}"
+
+From the following candidate products in the same category, select the TOP 4 most relevant recommendations.
+Prioritize similarity in use-case, tags, and complementary items.
+
+Candidates:
+${candidateList}
+
+Return ONLY a JSON array of exactly 4 product IDs (strings), like this:
+["id1", "id2", "id3", "id4"]
+
+Return ONLY the JSON array. No explanation, no markdown.`;
+  const response = await llmService.generateResponse(prompt, [], true);
+  const cleanedResponse = response.replace(/```json|```/g, "").trim();
+  const recommendedIds = JSON.parse(cleanedResponse);
+  const recommendations = await prisma2.product.findMany({
+    where: { id: { in: recommendedIds } },
+    select: {
+      id: true,
+      name: true,
+      shortDescription: true,
+      sellPrice: true,
+      regularPrice: true,
+      images: true,
+      category: { select: { name: true } }
+    }
+  });
+  return recommendedIds.map((id) => recommendations.find((p) => p.id === id)).filter(Boolean);
+};
+var analyzeBusiness = async () => {
+  const [orderStats, categorySales, topProducts, sellerPerformance, summary] = await Promise.all([
+    // Revenue Summary
+    prisma2.order.aggregate({
+      _sum: { totalAmount: true },
+      _count: { id: true }
+    }),
+    // Sales by Category
+    prisma2.category.findMany({
+      include: {
+        products: {
+          select: {
+            orderItems: {
+              select: {
+                price: true,
+                quantity: true
+              }
+            }
+          }
+        }
+      }
+    }),
+    // Top 5 Products by Quantity
+    prisma2.orderItem.groupBy({
+      by: ["productId"],
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: "desc" } },
+      take: 5
+    }),
+    // Seller Performance (Shops with order counts)
+    prisma2.shop.findMany({
+      select: {
+        name: true,
+        _count: {
+          select: { orderItems: true }
+        }
+      },
+      orderBy: { orderItems: { _count: "asc" } },
+      take: 5
+    }),
+    // Total counts
+    prisma2.$transaction([
+      prisma2.user.count({ where: { role: Role.USER } }),
+      prisma2.user.count({ where: { role: Role.SELLER } })
+    ])
+  ]);
+  const processedCategorySales = categorySales.map((cat) => ({
+    name: cat.name,
+    totalRevenue: cat.products.reduce(
+      (acc, p) => acc + p.orderItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0
+      ),
+      0
+    )
+  })).sort((a, b) => b.totalRevenue - a.totalRevenue);
+  const topProductDetails = await prisma2.product.findMany({
+    where: { id: { in: topProducts.map((p) => p.productId) } },
+    select: { name: true }
+  });
+  const llmService = new LLMService();
+  const context = {
+    totalRevenue: orderStats._sum.totalAmount || 0,
+    totalOrders: orderStats._count.id,
+    totalCustomers: summary[0],
+    totalSellers: summary[1],
+    categoryPerformance: processedCategorySales,
+    topSellingProducts: topProductDetails.map((p) => p.name),
+    lowPerformingSellers: sellerPerformance.map(
+      (s) => `${s.name} (${s._count.orderItems} sales)`
+    )
+  };
+  const prompt = `You are a Business Analyst. Analyze this data:
+  ${JSON.stringify(context, null, 2)}
+  
+  Return ONLY a JSON object: {"analysis": "HTML_STRING"}
+  The HTML_STRING must use <h3>, <p>, <ul>, <li> tags for structure.
+  Do not include any other text or markdown code blocks.`;
+  const response = await llmService.generateResponse(prompt, [], true);
+  let finalHTML = "";
+  try {
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsedResponse = JSON.parse(jsonMatch[0]);
+      finalHTML = parsedResponse.analysis || response;
+    } else {
+      finalHTML = response;
+    }
+  } catch (error) {
+    finalHTML = response.replace(/```json|```/g, "").trim();
+  }
+  return {
+    insights: finalHTML,
+    generatedAt: (/* @__PURE__ */ new Date()).toISOString()
+  };
+};
 var AIService = {
-  generateProductData
+  generateProductData,
+  getRecommendations,
+  analyzeBusiness
 };
 
 // src/app/module/ai/ai.controller.ts
@@ -4747,14 +4911,35 @@ var generateProductData2 = catchAsync(async (req, res) => {
   const { title } = req.body;
   const result = await AIService.generateProductData(title);
   sendResponse(res, {
-    httpStatusCode: status23.OK,
+    httpStatusCode: status24.OK,
     success: true,
     message: "Product data generated successfully",
     data: result
   });
 });
+var getRecommendations2 = catchAsync(async (req, res) => {
+  const { productId } = req.body;
+  const result = await AIService.getRecommendations(productId);
+  sendResponse(res, {
+    httpStatusCode: status24.OK,
+    success: true,
+    message: "Recommendations fetched successfully",
+    data: result
+  });
+});
+var analyzeBusiness2 = catchAsync(async (req, res) => {
+  const result = await AIService.analyzeBusiness();
+  sendResponse(res, {
+    httpStatusCode: status24.OK,
+    success: true,
+    message: "Business insights generated successfully",
+    data: result
+  });
+});
 var AIController = {
-  generateProductData: generateProductData2
+  generateProductData: generateProductData2,
+  getRecommendations: getRecommendations2,
+  analyzeBusiness: analyzeBusiness2
 };
 
 // src/app/module/ai/ai.route.ts
@@ -4763,6 +4948,12 @@ router11.post(
   "/generate-product-data",
   checkAuth(Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN),
   AIController.generateProductData
+);
+router11.post("/recommendations", AIController.getRecommendations);
+router11.post(
+  "/analyze-business",
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  AIController.analyzeBusiness
 );
 var AIRoutes = router11;
 
@@ -4816,46 +5007,46 @@ var requestLogger = async (req, res, next) => {
 };
 
 // src/app/middleware/globalErrorHandler.ts
-import status26 from "http-status";
+import status27 from "http-status";
 import z8 from "zod";
 
 // src/app/errorHelpers/handlePrismaErrors.ts
-import status24 from "http-status";
+import status25 from "http-status";
 var getStatusCodeFromPrismaError = (errorCode) => {
   if (errorCode === "P2002") {
-    return status24.CONFLICT;
+    return status25.CONFLICT;
   }
   if (["P2025", "P2001", "P2015", "P2018"].includes(errorCode)) {
-    return status24.NOT_FOUND;
+    return status25.NOT_FOUND;
   }
   if (["P1000", "P6002"].includes(errorCode)) {
-    return status24.UNAUTHORIZED;
+    return status25.UNAUTHORIZED;
   }
   if (["P1010", "P6010"].includes(errorCode)) {
-    return status24.FORBIDDEN;
+    return status25.FORBIDDEN;
   }
   if (errorCode === "P6003") {
-    return status24.PAYMENT_REQUIRED;
+    return status25.PAYMENT_REQUIRED;
   }
   if (["P1008", "P2004", "P6004"].includes(errorCode)) {
-    return status24.GATEWAY_TIMEOUT;
+    return status25.GATEWAY_TIMEOUT;
   }
   if (errorCode === "P5011") {
-    return status24.TOO_MANY_REQUESTS;
+    return status25.TOO_MANY_REQUESTS;
   }
   if (errorCode === "P6009") {
     return 413;
   }
   if (errorCode.startsWith("P1") || ["P2024", "P2037", "P6008"].includes(errorCode)) {
-    return status24.SERVICE_UNAVAILABLE;
+    return status25.SERVICE_UNAVAILABLE;
   }
   if (errorCode.startsWith("P2")) {
-    return status24.BAD_REQUEST;
+    return status25.BAD_REQUEST;
   }
   if (errorCode.startsWith("P3") || errorCode.startsWith("P4")) {
-    return status24.INTERNAL_SERVER_ERROR;
+    return status25.INTERNAL_SERVER_ERROR;
   }
-  return status24.INTERNAL_SERVER_ERROR;
+  return status25.INTERNAL_SERVER_ERROR;
 };
 var formatErrorMeta = (meta) => {
   if (!meta) return "";
@@ -4925,7 +5116,7 @@ var handlePrismaClientUnknownError = (error) => {
   ];
   return {
     success: false,
-    statusCode: status24.INTERNAL_SERVER_ERROR,
+    statusCode: status25.INTERNAL_SERVER_ERROR,
     message: `Prisma Client Unknown Request Error: ${mainMessage}`,
     errorSources
   };
@@ -4946,13 +5137,13 @@ var handlePrismaClientValidationError = (error) => {
   });
   return {
     success: false,
-    statusCode: status24.BAD_REQUEST,
+    statusCode: status25.BAD_REQUEST,
     message: `Prisma Client Validation Error: ${mainMessage}`,
     errorSources
   };
 };
 var handlerPrismaClientInitializationError = (error) => {
-  const statusCode = error.errorCode ? getStatusCodeFromPrismaError(error.errorCode) : status24.SERVICE_UNAVAILABLE;
+  const statusCode = error.errorCode ? getStatusCodeFromPrismaError(error.errorCode) : status25.SERVICE_UNAVAILABLE;
   const cleanMessage = error.message;
   cleanMessage.replace(/Invalid `.*?` invocation:?\s*/i, "");
   const lines = cleanMessage.split("\n").filter((line) => line.trim());
@@ -4979,16 +5170,16 @@ var handlerPrismaClientRustPanicError = () => {
   ];
   return {
     success: false,
-    statusCode: status24.INTERNAL_SERVER_ERROR,
+    statusCode: status25.INTERNAL_SERVER_ERROR,
     message: "Prisma Client Rust Panic Error: The database engine crashed due to a fatal error.",
     errorSources
   };
 };
 
 // src/app/errorHelpers/handleZodError.ts
-import status25 from "http-status";
+import status26 from "http-status";
 var handleZodError = (err) => {
-  const statusCode = status25.BAD_REQUEST;
+  const statusCode = status26.BAD_REQUEST;
   const message = "Zod Validation Error";
   const errorSources = [];
   err.issues.forEach((issue) => {
@@ -5053,7 +5244,7 @@ var globalErrorHandler = async (err, req, res, next) => {
   }
   await deleteUploadedFilesFromGlobalErrorHandler(req);
   let errorSources = [];
-  let statusCode = status26.INTERNAL_SERVER_ERROR;
+  let statusCode = status27.INTERNAL_SERVER_ERROR;
   let message = "Internal Server Error";
   let stack = void 0;
   if (err instanceof prismaNamespace_exports.PrismaClientKnownRequestError) {
@@ -5103,7 +5294,7 @@ var globalErrorHandler = async (err, req, res, next) => {
       }
     ];
   } else if (err instanceof Error) {
-    statusCode = status26.INTERNAL_SERVER_ERROR;
+    statusCode = status27.INTERNAL_SERVER_ERROR;
     message = err.message;
     stack = err.stack;
     errorSources = [
@@ -5124,13 +5315,45 @@ var globalErrorHandler = async (err, req, res, next) => {
 };
 
 // src/app/middleware/notFound.ts
-import status27 from "http-status";
+import status28 from "http-status";
 var notFound = (req, res) => {
-  res.status(status27.NOT_FOUND).json({
+  res.status(status28.NOT_FOUND).json({
     success: false,
     message: `Route ${req.originalUrl} not found`
   });
 };
+
+// src/app/middleware/rateLimiter.ts
+import { rateLimit } from "express-rate-limit";
+var globalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  // 15 minutes
+  limit: 100,
+  // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+  standardHeaders: "draft-8",
+  // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false,
+  // Disable the `X-RateLimit-*` headers
+  message: {
+    success: false,
+    message: "Too many requests from this IP, please try again after 15 minutes"
+  },
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json(options.message);
+  }
+});
+var authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  // 15 minutes
+  limit: 10,
+  // Limit each IP to 10 requests per 15 minutes for auth
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many login attempts, please try again after 15 minutes"
+  }
+});
 
 // src/app.ts
 var app = express2();
@@ -5155,6 +5378,7 @@ app.use("/api/auth", toNodeHandler(auth));
 app.use(express2.urlencoded({ extended: true }));
 app.use(express2.json());
 app.use(cookieParser());
+app.use("/api", globalRateLimiter);
 app.use("/api/v1", IndexRoutes);
 app.get("/", (req, res) => {
   res.send("Hello from Next Bazar Server!");

@@ -42,6 +42,7 @@ interface EnvConfig {
     OPENROUTER_EMBEDDING_MODEL: string;
     OPENROUTER_LLM_MODEL: string;
   };
+  SENTRY_DSN?: string;
 }
 
 const loadEnvVariables = (): EnvConfig => {
@@ -123,6 +124,7 @@ const loadEnvVariables = (): EnvConfig => {
         .OPENROUTER_EMBEDDING_MODEL as string,
       OPENROUTER_LLM_MODEL: process.env.OPENROUTER_LLM_MODEL as string,
     },
+    SENTRY_DSN: process.env.SENTRY_DSN,
   };
 };
 
