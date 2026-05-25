@@ -1,0 +1,26 @@
+model Attribute {
+  id        String           @id @default(uuid())
+  name      String
+  shopId    String?
+  shop      Shop?            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  values    AttributeValue[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([name, shopId])
+  @@index([shopId])
+  @@map("attributes")
+}
+
+model AttributeValue {
+  id          String    @id @default(uuid())
+  value       String
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([value, attributeId])
+  @@index([attributeId])
+  @@map("attribute_values")
+}

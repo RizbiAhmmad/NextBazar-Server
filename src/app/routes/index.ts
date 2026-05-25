@@ -10,6 +10,7 @@ import { AnalyticsRoutes } from "../module/analytics/analytics.route";
 import { RagRoutes } from "../module/rag/rag.route";
 import { AdminRoutes } from "../module/admin/admin.route";
 import { AIRoutes } from "../module/ai/ai.route";
+import { AttributeRoutes } from "../module/attribute/attribute.route";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/reviews", ReviewRoutes);
 router.use("/analytics", AnalyticsRoutes);
 router.use("/rag", RagRoutes);
 router.use("/ai", AIRoutes);
+router.use("/attributes", AttributeRoutes);
 
 export const IndexRoutes = router;
