@@ -268,6 +268,61 @@ const deleteAttributeValue = async (
   return { message: "Attribute value deleted successfully" };
 };
 
+const updateAttributeValue = async (
+  valueId: string,
+  user: { userId: string; role: Role },
+  payload: { value: string }
+) => {
+  const value = await prisma.attributeValue.findUnique({
+    where: { id: valueId },
+    include: {
+      attribute: {
+        include: { shop: true },
+      },
+    },
+  });
+
+  if (!value) {
+    throw new AppError(status.NOT_FOUND, "Attribute value not found");
+  }
+
+  // If seller, check ownership of parent attribute
+  if (user.role === Role.SELLER) {
+    if (
+      !value.attribute.shop ||
+      value.attribute.shop.vendorId !== user.userId
+    ) {
+      throw new AppError(
+        status.FORBIDDEN,
+        "Unauthorized: You cannot update this attribute value"
+      );
+    }
+  }
+
+  // Check unique constraint for rename within the same attribute
+  const existing = await prisma.attributeValue.findFirst({
+    where: {
+      value: payload.value,
+      attributeId: value.attributeId,
+      NOT: { id: valueId },
+    },
+  });
+
+  if (existing) {
+    throw new AppError(
+      status.BAD_REQUEST,
+      "Value already exists for this attribute"
+    );
+  }
+
+  const updatedValue = await prisma.attributeValue.update({
+    where: { id: valueId },
+    data: { value: payload.value },
+  });
+
+  return updatedValue;
+};
+
 export const AttributeService = {
   createAttribute,
   getAllAttributes,
@@ -276,4 +331,5 @@ export const AttributeService = {
   deleteAttribute,
   addAttributeValue,
   deleteAttributeValue,
+  updateAttributeValue,
 };

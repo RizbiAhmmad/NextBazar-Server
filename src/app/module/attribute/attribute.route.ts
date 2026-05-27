@@ -49,4 +49,11 @@ router.delete(
   AttributeController.deleteAttributeValue
 );
 
+router.patch(
+  "/values/:valueId",
+  checkAuth(Role.SUPER_ADMIN, Role.ADMIN, Role.SELLER),
+  validateRequest(addAttributeValueZodSchema),
+  AttributeController.updateAttributeValue
+);
+
 export const AttributeRoutes = router;
