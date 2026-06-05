@@ -28,15 +28,23 @@ const createProduct = async (vendorId: string, payload: any) => {
   // 3. Generate unique slug
   const slug = await generateUniqueSlug(prisma, payload.name, "product");
 
+  const { variants, ...productData } = payload;
+
   const product = await prisma.product.create({
     data: {
-      ...payload,
+      ...productData,
       slug,
       status: ProductStatus.ACTIVE,
+      ...(variants && variants.length > 0 && {
+        variants: {
+          create: variants,
+        },
+      }),
     },
     include: {
       category: true,
       shop: true,
+      variants: true,
     },
   });
 
@@ -98,6 +106,7 @@ const getAllProducts = async (queryParams: IQueryParams) => {
     .include({
       category: true,
       shop: true,
+      variants: true,
     });
 
   const result = await productQuery.execute();
@@ -110,6 +119,7 @@ const getProductById = async (id: string) => {
     include: {
       category: true,
       shop: true,
+      variants: true,
       reviews: {
         include: {
           user: true,
@@ -131,6 +141,7 @@ const getProductBySlug = async (slug: string) => {
     include: {
       category: true,
       shop: true,
+      variants: true,
       reviews: true,
     },
   });
@@ -161,15 +172,88 @@ const updateProduct = async (id: string, vendorId: string, payload: any) => {
     slug = await generateUniqueSlug(prisma, payload.name, "product", id);
   }
 
-  const updatedProduct = await prisma.product.update({
-    where: { id },
-    data: {
-      ...payload,
-      ...(slug && { slug }),
-    },
+  const { variants, ...productData } = payload;
+
+  const updatedProduct = await prisma.$transaction(async (tx) => {
+    if (variants !== undefined) {
+      await tx.productVariant.deleteMany({
+        where: { productId: id },
+      });
+
+      if (variants && variants.length > 0) {
+        await tx.productVariant.createMany({
+          data: variants.map((v: any) => ({
+            ...v,
+            productId: id,
+          })),
+        });
+      }
+    }
+
+    return await tx.product.update({
+      where: { id },
+      data: {
+        ...productData,
+        ...(slug && { slug }),
+      },
+      include: {
+        category: true,
+        shop: true,
+        variants: true,
+      },
+    });
   });
 
   return updatedProduct;
+};
+
+const getProductVariants = async (productId: string) => {
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { variants: true },
+  });
+
+  if (!product) {
+    throw new AppError(status.NOT_FOUND, "Product not found");
+  }
+
+  return product.variants;
+};
+
+const uploadVariantImage = async (
+  productId: string,
+  variantId: string,
+  vendorId: string,
+  imageUrl: string,
+) => {
+  // Verify product belongs to vendor
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { shop: true },
+  });
+
+  if (!product) {
+    throw new AppError(status.NOT_FOUND, "Product not found");
+  }
+
+  if (product.shop.vendorId !== vendorId) {
+    throw new AppError(status.FORBIDDEN, "Unauthorized: This product does not belong to you");
+  }
+
+  const variant = await prisma.productVariant.findUnique({
+    where: { id: variantId },
+  });
+
+  if (!variant || variant.productId !== productId) {
+    throw new AppError(status.NOT_FOUND, "Variant not found for this product");
+  }
+
+  const updated = await prisma.productVariant.update({
+    where: { id: variantId },
+    data: { image: imageUrl },
+  });
+
+  return updated;
 };
 
 const deleteProduct = async (id: string, vendorId: string) => {
@@ -202,4 +286,6 @@ export const ProductService = {
   getProductBySlug,
   updateProduct,
   deleteProduct,
+  getProductVariants,
+  uploadVariantImage,
 };

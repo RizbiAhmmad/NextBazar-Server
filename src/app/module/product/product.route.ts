@@ -51,4 +51,17 @@ router.delete(
   ProductController.deleteProduct,
 );
 
+// Variant-specific routes
+router.get(
+  "/:id/variants",
+  ProductController.getProductVariants,
+);
+
+router.patch(
+  "/:productId/variants/:variantId/image",
+  checkAuth(Role.SELLER),
+  multerUpload.single("image"),
+  ProductController.uploadVariantImage,
+);
+
 export const ProductRoutes = router;

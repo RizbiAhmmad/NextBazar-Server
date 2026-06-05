@@ -1,5 +1,14 @@
 import z from "zod";
 
+const variantSchema = z.object({
+  combination: z.string().min(1, "Combination is required"),
+  quantity: z.number().int().nonnegative("Quantity cannot be negative"),
+  purchasePrice: z.number().positive("Purchase price must be positive"),
+  regularPrice: z.number().positive("Regular price must be positive"),
+  sellPrice: z.number().positive("Sell price must be positive"),
+  image: z.string().optional().nullable(),
+});
+
 export const createProductZodSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().min(1, "Description is required"),
@@ -11,6 +20,9 @@ export const createProductZodSchema = z.object({
   categoryId: z.string().uuid("Invalid category ID"),
   shopId: z.string().uuid("Invalid shop ID"),
   tags: z.array(z.string()).optional(),
+  type: z.enum(["SIMPLE", "VARIABLE"]).optional().default("SIMPLE"),
+  attributes: z.any().optional(),
+  variants: z.array(variantSchema).optional(),
 });
 
 export const updateProductZodSchema = z.object({
@@ -24,4 +36,7 @@ export const updateProductZodSchema = z.object({
   categoryId: z.string().uuid().optional(),
   status: z.enum(["ACTIVE", "DRAFT", "OUT_OF_STOCK", "DELETED"]).optional(),
   tags: z.array(z.string()).optional(),
+  type: z.enum(["SIMPLE", "VARIABLE"]).optional(),
+  attributes: z.any().optional(),
+  variants: z.array(variantSchema).optional(),
 });

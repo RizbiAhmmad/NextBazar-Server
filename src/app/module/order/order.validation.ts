@@ -9,6 +9,7 @@ export const createOrderZodSchema = z.object({
   items: z.array(
     z.object({
       productId: z.string().uuid(),
+      productVariantId: z.string().uuid().optional().nullable(),
       quantity: z.number().int().positive(),
     })
   ).optional(),

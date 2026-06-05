@@ -90,6 +90,48 @@ const deleteProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getProductVariants = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await ProductService.getProductVariants(id as string);
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Product variants fetched successfully",
+    data: result,
+  });
+});
+
+const uploadVariantImage = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  const { productId, variantId } = req.params;
+
+  if (!req.file) {
+    return sendResponse(res, {
+      httpStatusCode: status.BAD_REQUEST,
+      success: false,
+      message: "No image file uploaded",
+      data: null,
+    });
+  }
+
+  const imageUrl = req.file.path;
+
+  const result = await ProductService.uploadVariantImage(
+    productId as string,
+    variantId as string,
+    user.userId as string,
+    imageUrl,
+  );
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Variant image uploaded successfully",
+    data: result,
+  });
+});
+
 export const ProductController = {
   createProduct,
   getAllProducts,
@@ -97,4 +139,6 @@ export const ProductController = {
   getProductBySlug,
   updateProduct,
   deleteProduct,
+  getProductVariants,
+  uploadVariantImage,
 };

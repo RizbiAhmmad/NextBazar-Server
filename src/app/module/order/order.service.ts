@@ -15,10 +15,17 @@ const createOrder = async (
     address: string;
     district: string;
     notes?: string;
-    items?: { productId: string; quantity: number }[];
+    items?: { productId: string; productVariantId?: string | null; quantity: number }[];
   },
 ) => {
-  let orderItemsToProcess: { productId: string; quantity: number; product: any }[] = [];
+  let orderItemsToProcess: {
+    productId: string;
+    productVariantId: string | null;
+    quantity: number;
+    product: any;
+    variant: any;
+    sellPrice: number;
+  }[] = [];
   let isFromCart = false;
 
   // 1. Determine items to process
@@ -27,12 +34,25 @@ const createOrder = async (
     for (const item of payload.items) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
+        include: { variants: true },
       });
       if (!product) throw new AppError(status.NOT_FOUND, `Product not found: ${item.productId}`);
+      
+      let sellPrice = product.sellPrice;
+      let variant = null;
+      if (product.type === "VARIABLE" && item.productVariantId) {
+        variant = product.variants.find((v) => v.id === item.productVariantId);
+        if (!variant) throw new AppError(status.NOT_FOUND, `Product variant not found: ${item.productVariantId}`);
+        sellPrice = variant.sellPrice;
+      }
+
       orderItemsToProcess.push({
         productId: item.productId,
+        productVariantId: item.productVariantId || null,
         quantity: item.quantity,
         product,
+        variant,
+        sellPrice,
       });
     }
   } else {
@@ -42,7 +62,12 @@ const createOrder = async (
       include: {
         items: {
           include: {
-            product: true,
+            product: {
+              include: {
+                variants: true,
+              },
+            },
+            productVariant: true,
           },
         },
       },
@@ -52,11 +77,20 @@ const createOrder = async (
       throw new AppError(status.BAD_REQUEST, "Your cart is empty");
     }
     
-    orderItemsToProcess = cart.items.map(item => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      product: item.product
-    }));
+    orderItemsToProcess = cart.items.map((item) => {
+      let sellPrice = item.product.sellPrice;
+      if (item.product.type === "VARIABLE" && item.productVariant) {
+        sellPrice = item.productVariant.sellPrice;
+      }
+      return {
+        productId: item.productId,
+        productVariantId: item.productVariantId,
+        quantity: item.quantity,
+        product: item.product,
+        variant: item.productVariant,
+        sellPrice,
+      };
+    });
     isFromCart = true;
   }
 
@@ -66,13 +100,22 @@ const createOrder = async (
 
     // Verify stock and calculate total
     for (const item of orderItemsToProcess) {
-      if (item.product.stock < item.quantity) {
-        throw new AppError(
-          status.BAD_REQUEST,
-          `Insufficient stock for product: ${item.product.name}`,
-        );
+      if (item.variant) {
+        if (item.variant.quantity < item.quantity) {
+          throw new AppError(
+            status.BAD_REQUEST,
+            `Insufficient stock for variation of product: ${item.product.name}`,
+          );
+        }
+      } else {
+        if (item.product.stock < item.quantity) {
+          throw new AppError(
+            status.BAD_REQUEST,
+            `Insufficient stock for product: ${item.product.name}`,
+          );
+        }
       }
-      totalAmount += item.product.sellPrice * item.quantity;
+      totalAmount += item.sellPrice * item.quantity;
     }
 
     // Create Order
@@ -91,7 +134,7 @@ const createOrder = async (
 
     // Create OrderItems and reduce stock
     for (const item of orderItemsToProcess) {
-      const itemTotal = item.product.sellPrice * item.quantity;
+      const itemTotal = item.sellPrice * item.quantity;
       const itemCommission = itemTotal * COMMISSION_RATE;
       const vendorEarning = itemTotal - itemCommission;
 
@@ -99,8 +142,9 @@ const createOrder = async (
         data: {
           orderId: order.id,
           productId: item.productId,
+          productVariantId: item.productVariantId,
           quantity: item.quantity,
-          price: item.product.sellPrice,
+          price: item.sellPrice,
           shopId: item.product.shopId,
           platformEarning: itemCommission,
           vendorEarning: vendorEarning,
@@ -108,14 +152,34 @@ const createOrder = async (
       });
 
       // Update stock
-      await tx.product.update({
-        where: { id: item.productId },
-        data: {
-          stock: {
-            decrement: item.quantity,
+      if (item.productVariantId) {
+        await tx.productVariant.update({
+          where: { id: item.productVariantId },
+          data: {
+            quantity: {
+              decrement: item.quantity,
+            },
           },
-        },
-      });
+        });
+        // Keep main product stock decrement in sync
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      } else {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
     }
 
     // 3. Clear Cart Items only if order was from cart
@@ -145,6 +209,7 @@ const getAllOrders = async (queryParams: IQueryParams) => {
       items: {
         include: {
           product: true,
+          productVariant: true,
           shop: true,
         },
       },
@@ -163,6 +228,7 @@ const getOrderById = async (id: string, userId?: string, role?: string) => {
       items: {
         include: {
           product: true,
+          productVariant: true,
           shop: true,
         },
       },
@@ -178,7 +244,7 @@ const getOrderById = async (id: string, userId?: string, role?: string) => {
 
   // If not admin, check if the user is the owner or a vendor of an item in the order
   if (role !== "ADMIN" && role !== "SUPER_ADMIN" && order.userId !== userId) {
-    const isVendorOfItem = order.items.some(item => item.shop.vendorId === userId);
+    const isVendorOfItem = order.items.some((item) => item.shop.vendorId === userId);
     if (!isVendorOfItem) {
       throw new AppError(status.FORBIDDEN, "Access denied");
     }
@@ -242,6 +308,7 @@ const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {
     include: {
       order: true,
       product: true,
+      productVariant: true,
     },
     orderBy: {
       order: { createdAt: "desc" },

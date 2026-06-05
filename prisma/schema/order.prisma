@@ -40,15 +40,18 @@ model OrderItem {
   status OrderStatus @default(PENDING)
 
   // Relations
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  shopId    String
-  shop      Shop    @relation(fields: [shopId], references: [id])
+  orderId          String
+  order            Order           @relation(fields: [orderId], references: [id])
+  productId        String
+  product          Product         @relation(fields: [productId], references: [id])
+  productVariantId String?
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id])
+  shopId           String
+  shop             Shop            @relation(fields: [shopId], references: [id])
 
   @@index([orderId])
   @@index([shopId])
   @@index([productId])
+  @@index([productVariantId])
   @@map("order_items")
 }

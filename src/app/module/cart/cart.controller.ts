@@ -44,6 +44,7 @@ const removeFromCart = catchAsync(async (req: Request, res: Response) => {
   const result = await CartService.removeFromCart(
     req.user.userId as string,
     req.params.productId as string,
+    req.query.productVariantId as string | undefined,
   );
 
   sendResponse(res, {

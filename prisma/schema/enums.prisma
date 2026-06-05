@@ -39,3 +39,8 @@ enum PaymentStatus {
   FAILED
   REFUNDED
 }
+
+enum ProductType {
+  SIMPLE
+  VARIABLE
+}

@@ -7,6 +7,8 @@ model Product {
   images      String[]
   stock       Int           @default(0)
   status      ProductStatus @default(DRAFT)
+  type        ProductType   @default(SIMPLE)
+  attributes  Json?
 
   // Pricing
   purchasePrice Float // What vendor bought it for (internal cost)
@@ -22,6 +24,7 @@ model Product {
   categoryId String
   category   Category  @relation(fields: [categoryId], references: [id])
 
+  variants   ProductVariant[]
   reviews    Review[]
   orderItems OrderItem[]
   cartItems  CartItem[]
@@ -34,4 +37,26 @@ model Product {
   @@index([status])
   @@index([slug])
   @@map("products")
+}
+
+model ProductVariant {
+  id            String   @id @default(uuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  combination   String   // e.g. "XL-Red-500gm"
+
+  quantity      Int      @default(0)
+  purchasePrice Float
+  regularPrice  Float
+  sellPrice     Float
+  image         String?
+
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([productId])
+  @@map("product_variants")
 }
