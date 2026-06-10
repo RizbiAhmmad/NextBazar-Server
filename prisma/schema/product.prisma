@@ -18,6 +18,12 @@ model Product {
   // Tags / searchability
   tags String[]
 
+  // Vat, Shipping, Featured configuration
+  vatType       VatType       @default(INCLUDED)
+  vatPercentage Float         @default(0)
+  freeShipping  Boolean       @default(false)
+  isFeatured    Boolean       @default(false)
+
   // Relations
   shopId     String
   shop       Shop      @relation(fields: [shopId], references: [id])

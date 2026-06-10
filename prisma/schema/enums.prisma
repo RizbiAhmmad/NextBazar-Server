@@ -44,3 +44,8 @@ enum ProductType {
   SIMPLE
   VARIABLE
 }
+
+enum VatType {
+  INCLUDED
+  EXCLUDED
+}

@@ -23,6 +23,10 @@ export const createProductZodSchema = z.object({
   type: z.enum(["SIMPLE", "VARIABLE"]).optional().default("SIMPLE"),
   attributes: z.any().optional(),
   variants: z.array(variantSchema).optional(),
+  vatType: z.enum(["INCLUDED", "EXCLUDED"]).optional().default("INCLUDED"),
+  vatPercentage: z.coerce.number().nonnegative().optional().default(0),
+  freeShipping: z.coerce.boolean().optional().default(false),
+  isFeatured: z.coerce.boolean().optional().default(false),
 });
 
 export const updateProductZodSchema = z.object({
@@ -39,4 +43,8 @@ export const updateProductZodSchema = z.object({
   type: z.enum(["SIMPLE", "VARIABLE"]).optional(),
   attributes: z.any().optional(),
   variants: z.array(variantSchema).optional(),
+  vatType: z.enum(["INCLUDED", "EXCLUDED"]).optional(),
+  vatPercentage: z.coerce.number().nonnegative().optional(),
+  freeShipping: z.coerce.boolean().optional(),
+  isFeatured: z.coerce.boolean().optional(),
 });
