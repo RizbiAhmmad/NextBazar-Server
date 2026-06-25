@@ -11,6 +11,7 @@ import { RagRoutes } from "../module/rag/rag.route";
 import { AdminRoutes } from "../module/admin/admin.route";
 import { AIRoutes } from "../module/ai/ai.route";
 import { AttributeRoutes } from "../module/attribute/attribute.route";
+import { CouponRoutes } from "../module/coupon/coupon.route";
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use("/analytics", AnalyticsRoutes);
 router.use("/rag", RagRoutes);
 router.use("/ai", AIRoutes);
 router.use("/attributes", AttributeRoutes);
+router.use("/coupons", CouponRoutes);
 
 export const IndexRoutes = router;
