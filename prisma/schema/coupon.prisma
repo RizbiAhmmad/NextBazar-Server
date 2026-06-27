@@ -18,6 +18,7 @@ model Coupon {
   shopId   String
   shop     Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
   products CouponProduct[]
+  orders   Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

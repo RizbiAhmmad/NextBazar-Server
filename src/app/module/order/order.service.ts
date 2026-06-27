@@ -16,6 +16,9 @@ const createOrder = async (
     district: string;
     notes?: string;
     items?: { productId: string; productVariantId?: string | null; quantity: number }[];
+    couponId?: string | null;
+    discountAmount?: number;
+    shippingFee?: number;
   },
 ) => {
   let orderItemsToProcess: {
@@ -118,11 +121,18 @@ const createOrder = async (
       totalAmount += item.sellPrice * item.quantity;
     }
 
+    const discountAmount = payload.discountAmount || 0;
+    const shippingFee = payload.shippingFee || 0;
+    const finalTotalAmount = Math.max(0, totalAmount + shippingFee - discountAmount);
+
     // Create Order
     const order = await tx.order.create({
       data: {
         userId,
-        totalAmount: totalAmount + 60, // Adding 60 TK shipping charge
+        totalAmount: finalTotalAmount,
+        discountAmount,
+        shippingFee,
+        couponId: payload.couponId || null,
         fullName: payload.fullName,
         phone: payload.phone,
         address: payload.address,
@@ -182,13 +192,23 @@ const createOrder = async (
       }
     }
 
-    // 3. Clear Cart Items only if order was from cart
-    if (isFromCart) {
-      const cart = await tx.cart.findUnique({ where: { userId } });
-      if (cart) {
+    // 3. Clear Cart Items (either all if checked out full cart, or only processed items)
+    const cart = await tx.cart.findUnique({ where: { userId } });
+    if (cart) {
+      if (isFromCart) {
         await tx.cartItem.deleteMany({
           where: { cartId: cart.id },
         });
+      } else {
+        for (const item of orderItemsToProcess) {
+          await tx.cartItem.deleteMany({
+            where: {
+              cartId: cart.id,
+              productId: item.productId,
+              productVariantId: item.productVariantId || null,
+            },
+          });
+        }
       }
     }
 

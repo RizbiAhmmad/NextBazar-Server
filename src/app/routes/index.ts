@@ -12,6 +12,7 @@ import { AdminRoutes } from "../module/admin/admin.route";
 import { AIRoutes } from "../module/ai/ai.route";
 import { AttributeRoutes } from "../module/attribute/attribute.route";
 import { CouponRoutes } from "../module/coupon/coupon.route";
+import { ShippingSettingRoutes } from "../module/shipping-setting/shippingSetting.route";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use("/rag", RagRoutes);
 router.use("/ai", AIRoutes);
 router.use("/attributes", AttributeRoutes);
 router.use("/coupons", CouponRoutes);
+router.use("/shipping-settings", ShippingSettingRoutes);
 
 export const IndexRoutes = router;

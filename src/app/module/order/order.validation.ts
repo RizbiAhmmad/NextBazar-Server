@@ -13,6 +13,9 @@ export const createOrderZodSchema = z.object({
       quantity: z.number().int().positive(),
     })
   ).optional(),
+  couponId: z.string().uuid().optional().nullable(),
+  discountAmount: z.number().optional(),
+  shippingFee: z.number().optional(),
 });
 
 export const updateOrderStatusZodSchema = z.object({

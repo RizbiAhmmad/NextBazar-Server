@@ -37,4 +37,7 @@ router.delete(
   CouponController.deleteCoupon
 );
 
+// Public route — validate coupon at checkout
+router.post("/validate", CouponController.validateCoupon);
+
 export const CouponRoutes = router;
