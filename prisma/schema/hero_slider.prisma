@@ -1,0 +1,9 @@
+model HeroSlider {
+  id        String   @id @default(uuid())
+  image     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hero_sliders")
+}

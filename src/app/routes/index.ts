@@ -13,6 +13,7 @@ import { AIRoutes } from "../module/ai/ai.route";
 import { AttributeRoutes } from "../module/attribute/attribute.route";
 import { CouponRoutes } from "../module/coupon/coupon.route";
 import { ShippingSettingRoutes } from "../module/shipping-setting/shippingSetting.route";
+import { HeroSliderRoutes } from "../module/hero-slider/heroSlider.route";
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use("/ai", AIRoutes);
 router.use("/attributes", AttributeRoutes);
 router.use("/coupons", CouponRoutes);
 router.use("/shipping-settings", ShippingSettingRoutes);
+router.use("/hero-sliders", HeroSliderRoutes);
 
 export const IndexRoutes = router;
