@@ -16,6 +16,8 @@ model Shop {
   orderItems OrderItem[]
   attributes Attribute[]
   coupons    Coupon[]
+  posCartItems PosCartItem[]
+  posOrders    Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

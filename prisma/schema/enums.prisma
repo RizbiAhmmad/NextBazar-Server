@@ -45,6 +45,11 @@ enum ProductType {
   VARIABLE
 }
 
+enum OrderType {
+  ONLINE
+  POS
+}
+
 enum VatType {
   INCLUDED
   EXCLUDED
