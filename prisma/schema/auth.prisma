@@ -13,13 +13,13 @@ model User {
   updatedAt          DateTime   @updatedAt
 
   // Relations
-  sessions  Session[]
-  accounts  Account[]
-  admin     Admin?
-  shop      Shop?
-  orders    Order[]
-  cart      Cart?
-  reviews   Review[]
+  sessions Session[]
+  accounts Account[]
+  admin    Admin?
+  shop     Shop?
+  orders   Order[]
+  cart     Cart?
+  reviews  Review[]
 
   @@unique([email])
   @@index([role])

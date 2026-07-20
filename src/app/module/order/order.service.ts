@@ -1,7 +1,7 @@
 import status from "http-status";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
-import { OrderStatus, PaymentStatus } from "../../../generated/prisma/enums";
+import { OrderStatus, OrderType, PaymentStatus } from "../../../generated/prisma/enums";
 import { IQueryParams } from "../../interfaces/query.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 
@@ -323,8 +323,16 @@ const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {
   const shop = await prisma.shop.findUnique({ where: { vendorId } });
   if (!shop) throw new AppError(status.NOT_FOUND, "Shop not found");
 
+  const orderType =
+    queryParams.orderType === OrderType.POS || queryParams.orderType === OrderType.ONLINE
+      ? queryParams.orderType
+      : undefined;
+
   const orderItems = await prisma.orderItem.findMany({
-    where: { shopId: shop.id },
+    where: {
+      shopId: shop.id,
+      ...(orderType ? { order: { orderType } } : {}),
+    },
     include: {
       order: true,
       product: true,

@@ -1,6 +1,6 @@
 model Cart {
-  id     String     @id @default(uuid())
-  items  CartItem[]
+  id    String     @id @default(uuid())
+  items CartItem[]
 
   // Relations
   userId String @unique

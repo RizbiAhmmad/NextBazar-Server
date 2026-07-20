@@ -16,7 +16,7 @@ model Coupon {
 
   // Relations
   shopId   String
-  shop     Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shop     Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
   products CouponProduct[]
   orders   Order[]
 

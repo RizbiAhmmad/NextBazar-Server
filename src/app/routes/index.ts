@@ -15,6 +15,7 @@ import { CouponRoutes } from "../module/coupon/coupon.route";
 import { ShippingSettingRoutes } from "../module/shipping-setting/shippingSetting.route";
 import { HeroSliderRoutes } from "../module/hero-slider/heroSlider.route";
 import { PosRoutes } from "../module/pos/pos.route";
+import { SiteSettingRoutes } from "../module/site-setting/siteSetting.route";
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use("/coupons", CouponRoutes);
 router.use("/shipping-settings", ShippingSettingRoutes);
 router.use("/hero-sliders", HeroSliderRoutes);
 router.use("/pos", PosRoutes);
+router.use("/site-settings", SiteSettingRoutes);
 
 export const IndexRoutes = router;
