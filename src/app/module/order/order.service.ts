@@ -8,7 +8,7 @@ import { QueryBuilder } from "../../utils/QueryBuilder";
 const COMMISSION_RATE = 0.1; // 10% commission
 
 const createOrder = async (
-  userId: string,
+  userId: string | null,
   payload: {
     fullName: string;
     phone: string;
@@ -59,7 +59,11 @@ const createOrder = async (
       });
     }
   } else {
-    // Items from Cart
+    // Items from Cart (guests always pass explicit items, so this path requires a logged-in user)
+    if (!userId) {
+      throw new AppError(status.BAD_REQUEST, "No items provided for order");
+    }
+
     const cart = await prisma.cart.findUnique({
       where: { userId },
       include: {
@@ -192,8 +196,8 @@ const createOrder = async (
       }
     }
 
-    // 3. Clear Cart Items (either all if checked out full cart, or only processed items)
-    const cart = await tx.cart.findUnique({ where: { userId } });
+    // 3. Clear Cart Items (either all if checked out full cart, or only processed items) — guests have no cart
+    const cart = userId ? await tx.cart.findUnique({ where: { userId } }) : null;
     if (cart) {
       if (isFromCart) {
         await tx.cartItem.deleteMany({

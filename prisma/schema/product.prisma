@@ -36,6 +36,7 @@ model Product {
   cartItems    CartItem[]
   coupons      CouponProduct[]
   posCartItems PosCartItem[]
+  landingPages LandingPage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

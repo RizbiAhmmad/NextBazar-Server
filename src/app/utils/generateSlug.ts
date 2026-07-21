@@ -1,19 +1,25 @@
 import { PrismaClient } from "../../generated/prisma/client";
 
-type SlugModel = "product" | "category";
+type SlugModel = "product" | "category" | "landingPage";
 
 /**
  * Converts a string into a URL-friendly slug.
  * e.g. "iPhone 15 Pro Max!" → "iphone-15-pro-max"
+ *
+ * Uses Unicode letter/number categories (not \w, which is ASCII-only) so
+ * non-Latin scripts like Bengali survive instead of being stripped to "".
  */
 export const toSlug = (text: string): string => {
-  return text
+  const slug = text
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, "") // remove special characters
+    .replace(/[^\p{L}\p{M}\p{N}\s-]/gu, "") // remove special characters (Unicode-aware; \p{M} keeps combining marks like Bengali vowel signs)
     .replace(/[\s_]+/g, "-") // spaces/underscores → hyphens
     .replace(/--+/g, "-") // collapse multiple hyphens
     .replace(/^-+|-+$/g, ""); // trim leading/trailing hyphens
+
+  // Fallback for titles with no letters/numbers at all (e.g. pure emoji/symbols)
+  return slug || `item-${Date.now().toString(36)}`;
 };
 
 /**
@@ -48,6 +54,11 @@ export const generateUniqueSlug = async (
       });
     } else if (model === "category") {
       existing = await prisma.category.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+    } else if (model === "landingPage") {
+      existing = await prisma.landingPage.findUnique({
         where: { slug },
         select: { id: true },
       });

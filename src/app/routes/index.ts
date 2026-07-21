@@ -16,6 +16,7 @@ import { ShippingSettingRoutes } from "../module/shipping-setting/shippingSettin
 import { HeroSliderRoutes } from "../module/hero-slider/heroSlider.route";
 import { PosRoutes } from "../module/pos/pos.route";
 import { SiteSettingRoutes } from "../module/site-setting/siteSetting.route";
+import { LandingPageRoutes } from "../module/landing-page/landingPage.route";
 
 const router = Router();
 
@@ -36,5 +37,6 @@ router.use("/shipping-settings", ShippingSettingRoutes);
 router.use("/hero-sliders", HeroSliderRoutes);
 router.use("/pos", PosRoutes);
 router.use("/site-settings", SiteSettingRoutes);
+router.use("/landing-pages", LandingPageRoutes);
 
 export const IndexRoutes = router;

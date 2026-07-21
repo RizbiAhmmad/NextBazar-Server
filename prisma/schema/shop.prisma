@@ -18,6 +18,7 @@ model Shop {
   coupons      Coupon[]
   posCartItems PosCartItem[]
   posOrders    Order[]
+  landingPages LandingPage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
