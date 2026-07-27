@@ -4,6 +4,7 @@ import AppError from "../../errorHelpers/AppError";
 import { OrderStatus, OrderType, PaymentStatus } from "../../../generated/prisma/enums";
 import { IQueryParams } from "../../interfaces/query.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
+import { generateOrderNumber } from "../../utils/generateOrderNumber";
 
 const COMMISSION_RATE = 0.1; // 10% commission
 
@@ -19,6 +20,7 @@ const createOrder = async (
     couponId?: string | null;
     discountAmount?: number;
     shippingFee?: number;
+    orderType?: OrderType;
   },
 ) => {
   let orderItemsToProcess: {
@@ -133,6 +135,7 @@ const createOrder = async (
     const order = await tx.order.create({
       data: {
         userId,
+        orderType: payload.orderType || OrderType.ONLINE,
         totalAmount: finalTotalAmount,
         discountAmount,
         shippingFee,
@@ -144,6 +147,11 @@ const createOrder = async (
         notes: payload.notes,
         orderStatus: OrderStatus.PENDING,
       },
+    });
+
+    const orderWithNumber = await tx.order.update({
+      where: { id: order.id },
+      data: { orderNumber: generateOrderNumber(order.orderType, order.orderSeq) },
     });
 
     // Create OrderItems and reduce stock
@@ -216,14 +224,14 @@ const createOrder = async (
       }
     }
 
-    return order;
+    return orderWithNumber;
   });
 };
 
 const getAllOrders = async (queryParams: IQueryParams) => {
   const orderQuery = new QueryBuilder(prisma.order, queryParams, {
-    searchableFields: ["address", "district", "fullName", "phone"],
-    filterableFields: ["orderStatus", "paymentStatus", "userId"],
+    searchableFields: ["orderNumber", "address", "district", "fullName", "phone"],
+    filterableFields: ["orderStatus", "paymentStatus", "userId", "orderType"],
   })
     .search()
     .filter()
@@ -327,15 +335,30 @@ const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {
   const shop = await prisma.shop.findUnique({ where: { vendorId } });
   if (!shop) throw new AppError(status.NOT_FOUND, "Shop not found");
 
-  const orderType =
-    queryParams.orderType === OrderType.POS || queryParams.orderType === OrderType.ONLINE
-      ? queryParams.orderType
-      : undefined;
+  const orderType = Object.values(OrderType).includes(
+    queryParams.orderType as OrderType,
+  )
+    ? (queryParams.orderType as OrderType)
+    : undefined;
+
+  const searchTerm =
+    typeof queryParams.searchTerm === "string" ? queryParams.searchTerm : undefined;
 
   const orderItems = await prisma.orderItem.findMany({
     where: {
       shopId: shop.id,
-      ...(orderType ? { order: { orderType } } : {}),
+      ...((orderType || searchTerm) && {
+        order: {
+          ...(orderType && { orderType }),
+          ...(searchTerm && {
+            OR: [
+              { orderNumber: { contains: searchTerm, mode: "insensitive" as const } },
+              { fullName: { contains: searchTerm, mode: "insensitive" as const } },
+              { phone: { contains: searchTerm, mode: "insensitive" as const } },
+            ],
+          }),
+        },
+      }),
     },
     include: {
       order: true,

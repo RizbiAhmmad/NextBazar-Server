@@ -1,5 +1,7 @@
 model Order {
   id            String        @id @default(uuid())
+  orderSeq      Int           @default(autoincrement())
+  orderNumber   String?       @unique
   orderType     OrderType     @default(ONLINE)
   totalAmount   Float
   paymentStatus PaymentStatus @default(PENDING)

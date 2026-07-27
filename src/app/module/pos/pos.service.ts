@@ -4,6 +4,7 @@ import AppError from "../../errorHelpers/AppError";
 import { OrderStatus, PaymentStatus, OrderType, ProductStatus } from "../../../generated/prisma/enums";
 import { IQueryParams } from "../../interfaces/query.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
+import { generateOrderNumber } from "../../utils/generateOrderNumber";
 
 const COMMISSION_RATE = 0.1; // 10% commission
 
@@ -188,6 +189,11 @@ const createPosOrder = async (
       },
     });
 
+    const orderWithNumber = await tx.order.update({
+      where: { id: newOrder.id },
+      data: { orderNumber: generateOrderNumber(newOrder.orderType, newOrder.orderSeq) },
+    });
+
     // Create Order Items and update stock
     for (const item of cartItems) {
       const itemTotal = item.price * item.quantity;
@@ -231,7 +237,7 @@ const createPosOrder = async (
       where: { shopId },
     });
 
-    return newOrder;
+    return orderWithNumber;
   });
 
   return order;
@@ -239,7 +245,7 @@ const createPosOrder = async (
 
 const getPosOrders = async (shopId: string, queryParams: IQueryParams) => {
   const orderQuery = new QueryBuilder(prisma.order, queryParams, {
-    searchableFields: ["id", "phone", "fullName"],
+    searchableFields: ["orderNumber", "phone", "fullName"],
     filterableFields: ["paymentMethod"],
   })
     .search()

@@ -5,6 +5,7 @@ import { QueryBuilder } from "../../utils/QueryBuilder";
 import AppError from "../../errorHelpers/AppError";
 import { generateUniqueSlug } from "../../utils/generateSlug";
 import { OrderService } from "../order/order.service";
+import { OrderType } from "../../../generated/prisma/enums";
 
 const getShopForVendor = async (vendorId: string) => {
   const shop = await prisma.shop.findUnique({ where: { vendorId } });
@@ -186,6 +187,7 @@ const createGuestOrder = async (
     address: payload.address,
     district: payload.district,
     shippingFee: payload.shippingFee,
+    orderType: OrderType.LANDING_PAGE,
     items: [
       {
         productId: landingPage.productId,
