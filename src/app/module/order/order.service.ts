@@ -167,6 +167,7 @@ const createOrder = async (
           productVariantId: item.productVariantId,
           quantity: item.quantity,
           price: item.sellPrice,
+          costPrice: item.variant?.purchasePrice ?? item.product.purchasePrice,
           shopId: item.product.shopId,
           platformEarning: itemCommission,
           vendorEarning: vendorEarning,

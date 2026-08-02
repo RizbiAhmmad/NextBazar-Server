@@ -18,6 +18,8 @@ import { PosRoutes } from "../module/pos/pos.route";
 import { SiteSettingRoutes } from "../module/site-setting/siteSetting.route";
 import { LandingPageRoutes } from "../module/landing-page/landingPage.route";
 import { SalesReportRoutes } from "../module/sales-report/sales-report.route";
+import { ExpenseRoutes } from "../module/expense/expense.route";
+import { ProfitLossRoutes } from "../module/profit-loss/profit-loss.route";
 
 const router = Router();
 
@@ -40,5 +42,7 @@ router.use("/pos", PosRoutes);
 router.use("/site-settings", SiteSettingRoutes);
 router.use("/landing-pages", LandingPageRoutes);
 router.use("/sales-report", SalesReportRoutes);
+router.use("/expenses", ExpenseRoutes);
+router.use("/profit-loss", ProfitLossRoutes);
 
 export const IndexRoutes = router;

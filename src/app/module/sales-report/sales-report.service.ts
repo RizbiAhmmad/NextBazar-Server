@@ -2,6 +2,7 @@ import status from "http-status";
 import { prisma } from "../../lib/prisma";
 import AppError from "../../errorHelpers/AppError";
 import { OrderStatus } from "../../../generated/prisma/enums";
+import { sumByPeriod } from "../../utils/periodSummary";
 
 const getShopForVendor = async (vendorId: string) => {
   const shop = await prisma.shop.findUnique({ where: { vendorId } });
@@ -23,44 +24,12 @@ const getSalesSummary = async (vendorId: string) => {
     },
   });
 
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(startOfToday);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  const startOfYesterday = new Date(startOfToday);
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-  const startOfWeek = new Date(startOfToday);
-  startOfWeek.setDate(startOfWeek.getDate() - 6);
-  const startOfLastWeek = new Date(startOfWeek);
-  startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-  const summary = {
-    today: 0,
-    yesterday: 0,
-    thisWeek: 0,
-    lastWeek: 0,
-    thisMonth: 0,
-    lastMonth: 0,
-    allTime: 0,
-  };
-
-  for (const item of deliveredItems) {
-    const lineTotal = item.price * item.quantity;
-    const createdAt = item.order.createdAt;
-
-    summary.allTime += lineTotal;
-
-    if (createdAt >= startOfToday && createdAt < tomorrowStart) summary.today += lineTotal;
-    if (createdAt >= startOfYesterday && createdAt < startOfToday) summary.yesterday += lineTotal;
-    if (createdAt >= startOfWeek && createdAt < tomorrowStart) summary.thisWeek += lineTotal;
-    if (createdAt >= startOfLastWeek && createdAt < startOfWeek) summary.lastWeek += lineTotal;
-    if (createdAt >= startOfMonth && createdAt < tomorrowStart) summary.thisMonth += lineTotal;
-    if (createdAt >= startOfLastMonth && createdAt < startOfMonth) summary.lastMonth += lineTotal;
-  }
-
-  return summary;
+  return sumByPeriod(
+    deliveredItems.map((item) => ({
+      amount: item.price * item.quantity,
+      date: item.order.createdAt,
+    })),
+  );
 };
 
 const getSalesReportItems = async (

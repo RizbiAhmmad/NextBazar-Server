@@ -200,6 +200,10 @@ const createPosOrder = async (
       const itemCommission = itemTotal * COMMISSION_RATE;
       const vendorEarning = itemTotal - itemCommission;
 
+      const variant = item.productVariantId
+        ? item.product.variants.find((v) => v.id === item.productVariantId)
+        : null;
+
       await tx.orderItem.create({
         data: {
           orderId: newOrder.id,
@@ -208,6 +212,7 @@ const createPosOrder = async (
           shopId: shopId,
           quantity: item.quantity,
           price: item.price,
+          costPrice: variant?.purchasePrice ?? item.product.purchasePrice,
           platformEarning: itemCommission,
           vendorEarning: vendorEarning,
           status: OrderStatus.DELIVERED,
