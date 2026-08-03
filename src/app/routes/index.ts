@@ -20,6 +20,7 @@ import { LandingPageRoutes } from "../module/landing-page/landingPage.route";
 import { SalesReportRoutes } from "../module/sales-report/sales-report.route";
 import { ExpenseRoutes } from "../module/expense/expense.route";
 import { ProfitLossRoutes } from "../module/profit-loss/profit-loss.route";
+import { PlatformReportRoutes } from "../module/platform-report/platform-report.route";
 
 const router = Router();
 
@@ -44,5 +45,6 @@ router.use("/landing-pages", LandingPageRoutes);
 router.use("/sales-report", SalesReportRoutes);
 router.use("/expenses", ExpenseRoutes);
 router.use("/profit-loss", ProfitLossRoutes);
+router.use("/platform-report", PlatformReportRoutes);
 
 export const IndexRoutes = router;
