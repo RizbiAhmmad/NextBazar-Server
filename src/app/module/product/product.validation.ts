@@ -2,6 +2,7 @@ import z from "zod";
 
 const variantSchema = z.object({
   combination: z.string().min(1, "Combination is required"),
+  sku: z.string().trim().min(1).optional().nullable(),
   quantity: z.number().int().nonnegative("Quantity cannot be negative"),
   purchasePrice: z.number().positive("Purchase price must be positive"),
   regularPrice: z.number().positive("Regular price must be positive"),
@@ -13,6 +14,7 @@ export const createProductZodSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().min(1, "Description is required"),
   shortDescription: z.string().min(1, "Short description is required"),
+  sku: z.string().trim().min(1).optional().nullable(),
   stock: z.number().int().nonnegative("Stock cannot be negative"),
   purchasePrice: z.number().positive("Purchase price must be positive"),
   regularPrice: z.number().positive("Regular price must be positive"),
@@ -33,6 +35,7 @@ export const updateProductZodSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
   shortDescription: z.string().optional(),
+  sku: z.string().trim().min(1).optional().nullable(),
   stock: z.number().int().nonnegative().optional(),
   purchasePrice: z.number().positive().optional(),
   regularPrice: z.number().positive().optional(),

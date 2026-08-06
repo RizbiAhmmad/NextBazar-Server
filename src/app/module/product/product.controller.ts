@@ -23,6 +23,17 @@ const createProduct = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const generateSku = catchAsync(async (req: Request, res: Response) => {
+  const result = await ProductService.generateSku();
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "SKU generated successfully",
+    data: result,
+  });
+});
+
 const getAllProducts = catchAsync(async (req: Request, res: Response) => {
   const { data, meta } = await ProductService.getAllProducts(req.query as IQueryParams);
 
@@ -134,6 +145,7 @@ const uploadVariantImage = catchAsync(async (req: Request, res: Response) => {
 
 export const ProductController = {
   createProduct,
+  generateSku,
   getAllProducts,
   getProductById,
   getProductBySlug,

@@ -4,6 +4,7 @@ import { IQueryParams } from "../../interfaces/query.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import AppError from "../../errorHelpers/AppError";
 import { generateUniqueSlug } from "../../utils/generateSlug";
+import { generateUniqueSku } from "../../utils/generateSku";
 import { ProductStatus } from "../../../generated/prisma/enums";
 
 const createProduct = async (vendorId: string, payload: any) => {
@@ -49,6 +50,11 @@ const createProduct = async (vendorId: string, payload: any) => {
   });
 
   return product;
+};
+
+const generateSku = async () => {
+  const sku = await generateUniqueSku(prisma);
+  return { sku };
 };
 
 const getAllProducts = async (queryParams: IQueryParams) => {
@@ -281,6 +287,7 @@ const deleteProduct = async (id: string, vendorId: string) => {
 
 export const ProductService = {
   createProduct,
+  generateSku,
   getAllProducts,
   getProductById,
   getProductBySlug,

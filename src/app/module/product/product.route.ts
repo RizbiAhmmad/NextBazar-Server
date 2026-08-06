@@ -13,6 +13,14 @@ const router = Router();
 
 // Public routes
 router.get("/", ProductController.getAllProducts);
+
+// Seller routes (must be declared before "/:id" to avoid being swallowed by the param route)
+router.get(
+  "/generate-sku",
+  checkAuth(Role.SELLER),
+  ProductController.generateSku,
+);
+
 router.get("/:id", ProductController.getProductById);
 router.get("/slug/:slug", ProductController.getProductBySlug);
 
