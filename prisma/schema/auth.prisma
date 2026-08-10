@@ -17,9 +17,10 @@ model User {
   accounts Account[]
   admin    Admin?
   shop     Shop?
-  orders   Order[]
-  cart     Cart?
-  reviews  Review[]
+  orders        Order[]
+  cart          Cart?
+  reviews       Review[]
+  notifications Notification[]
 
   @@unique([email])
   @@index([role])

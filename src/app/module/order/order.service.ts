@@ -5,6 +5,7 @@ import { OrderStatus, OrderType, PaymentStatus } from "../../../generated/prisma
 import { IQueryParams } from "../../interfaces/query.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { generateOrderNumber } from "../../utils/generateOrderNumber";
+import { NotificationService } from "../notification/notification.service";
 
 const COMMISSION_RATE = 0.1; // 10% commission
 
@@ -104,7 +105,7 @@ const createOrder = async (
   }
 
   // 2. Perform Order creation in a Transaction
-  return await prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     let totalAmount = 0;
 
     // Verify stock and calculate total
@@ -227,6 +228,10 @@ const createOrder = async (
 
     return orderWithNumber;
   });
+
+  await NotificationService.notifyOrderPlaced(order, orderItemsToProcess);
+
+  return order;
 };
 
 const getAllOrders = async (queryParams: IQueryParams) => {
@@ -287,17 +292,31 @@ const getOrderById = async (id: string, userId?: string, role?: string) => {
 };
 
 const updateOrderStatus = async (id: string, statusValue: OrderStatus) => {
-  return await prisma.order.update({
+  const existingOrder = await prisma.order.findUnique({ where: { id } });
+  if (!existingOrder) throw new AppError(status.NOT_FOUND, "Order not found");
+
+  const updatedOrder = await prisma.order.update({
     where: { id },
     data: { orderStatus: statusValue },
   });
+
+  await NotificationService.notifyOrderStatusChanged(updatedOrder, existingOrder.orderStatus);
+
+  return updatedOrder;
 };
 
 const updatePaymentStatus = async (id: string, paymentStatus: PaymentStatus) => {
-  return await prisma.order.update({
+  const existingOrder = await prisma.order.findUnique({ where: { id } });
+  if (!existingOrder) throw new AppError(status.NOT_FOUND, "Order not found");
+
+  const updatedOrder = await prisma.order.update({
     where: { id },
     data: { paymentStatus: paymentStatus },
   });
+
+  await NotificationService.notifyPaymentStatusChanged(updatedOrder, existingOrder.paymentStatus);
+
+  return updatedOrder;
 };
 
 const updateOrderItemStatus = async (
@@ -324,10 +343,15 @@ const updateOrderItemStatus = async (
   // Also update the main order status to match the item status
   // In a more complex system, we would check if all items are shipped/delivered
   // but for now, we propagate the status to give immediate feedback to the user
-  await prisma.order.update({
+  const existingOrder = await prisma.order.findUnique({ where: { id: orderItem.orderId } });
+  const updatedOrder = await prisma.order.update({
     where: { id: orderItem.orderId },
     data: { orderStatus: statusValue },
   });
+
+  if (existingOrder) {
+    await NotificationService.notifyOrderStatusChanged(updatedOrder, existingOrder.orderStatus);
+  }
 
   return updatedItem;
 };

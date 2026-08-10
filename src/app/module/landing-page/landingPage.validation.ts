@@ -24,6 +24,15 @@ export const createLandingPageZodSchema = z.object({
   orderButtonText: z.string().optional(),
 
   isActive: z.boolean().optional(),
+
+  themeColor: z.string().optional(),
+  showGallerySection: z.boolean().optional(),
+  showAboutSection: z.boolean().optional(),
+  showDescriptionSection: z.boolean().optional(),
+  showReviewsSection: z.boolean().optional(),
+  sectionOrder: z
+    .array(z.enum(["price", "gallery", "about", "description", "reviews"]))
+    .optional(),
 });
 
 export const updateLandingPageZodSchema = z.object({
@@ -54,6 +63,15 @@ export const updateLandingPageZodSchema = z.object({
   orderButtonText: z.string().optional(),
 
   isActive: z.boolean().optional(),
+
+  themeColor: z.string().optional(),
+  showGallerySection: z.boolean().optional(),
+  showAboutSection: z.boolean().optional(),
+  showDescriptionSection: z.boolean().optional(),
+  showReviewsSection: z.boolean().optional(),
+  sectionOrder: z
+    .array(z.enum(["price", "gallery", "about", "description", "reviews"]))
+    .optional(),
 });
 
 export const createGuestLandingOrderZodSchema = z.object({

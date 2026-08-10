@@ -3,6 +3,15 @@ model LandingPage {
   slug     String  @unique
   isActive Boolean @default(true)
 
+  // Design — theme color key (see LANDING_PAGE_THEMES on the client), per-section visibility,
+  // and section order (see LANDING_PAGE_SECTION_KEYS on the client)
+  themeColor             String   @default("violet")
+  showGallerySection     Boolean  @default(true)
+  showAboutSection       Boolean  @default(true)
+  showDescriptionSection Boolean  @default(true)
+  showReviewsSection     Boolean  @default(true)
+  sectionOrder           String[] @default(["price", "gallery", "about", "description", "reviews"])
+
   // Relations
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)

@@ -21,6 +21,7 @@ import { SalesReportRoutes } from "../module/sales-report/sales-report.route";
 import { ExpenseRoutes } from "../module/expense/expense.route";
 import { ProfitLossRoutes } from "../module/profit-loss/profit-loss.route";
 import { PlatformReportRoutes } from "../module/platform-report/platform-report.route";
+import { NotificationRoutes } from "../module/notification/notification.route";
 
 const router = Router();
 
@@ -46,5 +47,6 @@ router.use("/sales-report", SalesReportRoutes);
 router.use("/expenses", ExpenseRoutes);
 router.use("/profit-loss", ProfitLossRoutes);
 router.use("/platform-report", PlatformReportRoutes);
+router.use("/notifications", NotificationRoutes);
 
 export const IndexRoutes = router;

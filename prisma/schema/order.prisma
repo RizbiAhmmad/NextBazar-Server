@@ -22,6 +22,7 @@ model Order {
   shopId String?
   shop   Shop?       @relation(fields: [shopId], references: [id])
   items  OrderItem[]
+  notifications Notification[]
 
   discountAmount Float   @default(0)
   shippingFee    Float   @default(0)
