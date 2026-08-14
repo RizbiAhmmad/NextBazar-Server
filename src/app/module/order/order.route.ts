@@ -5,6 +5,7 @@ import { validateRequest } from "../../middleware/validateRequest";
 import { OrderController } from "./order.controller";
 import {
   createOrderZodSchema,
+  updateOrderItemZodSchema,
   updateOrderStatusZodSchema,
   updatePaymentStatusZodSchema,
 } from "./order.validation";
@@ -37,6 +38,13 @@ router.patch(
   checkAuth(Role.SELLER),
   validateRequest(updateOrderStatusZodSchema),
   OrderController.updateOrderItemStatus,
+);
+
+router.patch(
+  "/items/:id",
+  checkAuth(Role.SELLER),
+  validateRequest(updateOrderItemZodSchema),
+  OrderController.updateOrderItem,
 );
 
 // Admin only routes

@@ -25,3 +25,14 @@ export const updateOrderStatusZodSchema = z.object({
 export const updatePaymentStatusZodSchema = z.object({
   paymentStatus: z.enum(["PENDING", "PAID", "FAILED", "REFUNDED"]),
 });
+
+export const updateOrderItemZodSchema = z
+  .object({
+    status: z.enum(["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]).optional(),
+    productId: z.string().min(1).optional(),
+    productVariantId: z.string().nullable().optional(),
+    quantity: z.number().int().positive().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });

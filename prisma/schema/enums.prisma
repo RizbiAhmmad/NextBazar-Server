@@ -55,3 +55,19 @@ enum VatType {
   INCLUDED
   EXCLUDED
 }
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PayoutMethod {
+  MOBILE_BANKING
+  BANK_TRANSFER
+}
+
+enum MobileBankingProvider {
+  BKASH
+  NAGAD
+}

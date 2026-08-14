@@ -236,7 +236,15 @@ const createOrder = async (
 
 const getAllOrders = async (queryParams: IQueryParams) => {
   const orderQuery = new QueryBuilder(prisma.order, queryParams, {
-    searchableFields: ["orderNumber", "address", "district", "fullName", "phone"],
+    searchableFields: [
+      "orderNumber",
+      "address",
+      "district",
+      "fullName",
+      "phone",
+      "shop.name",
+      "items.shop.name",
+    ],
     filterableFields: ["orderStatus", "paymentStatus", "userId", "orderType"],
   })
     .search()
@@ -253,6 +261,9 @@ const getAllOrders = async (queryParams: IQueryParams) => {
       },
       user: {
         select: { id: true, name: true, email: true },
+      },
+      shop: {
+        select: { id: true, name: true },
       },
     });
 
@@ -356,6 +367,162 @@ const updateOrderItemStatus = async (
   return updatedItem;
 };
 
+const updateOrderItem = async (
+  itemId: string,
+  vendorId: string,
+  payload: {
+    status?: OrderStatus;
+    productId?: string;
+    productVariantId?: string | null;
+    quantity?: number;
+  },
+) => {
+  const shop = await prisma.shop.findUnique({ where: { vendorId } });
+  if (!shop) throw new AppError(status.NOT_FOUND, "Shop not found");
+
+  const orderItem = await prisma.orderItem.findUnique({
+    where: { id: itemId },
+    include: { order: true },
+  });
+
+  if (!orderItem || orderItem.shopId !== shop.id) {
+    throw new AppError(status.FORBIDDEN, "Access denied to this order item");
+  }
+
+  const isContentEdit =
+    payload.productId !== undefined ||
+    payload.productVariantId !== undefined ||
+    payload.quantity !== undefined;
+
+  if (!isContentEdit) {
+    // Status-only update — identical behavior to updateOrderItemStatus
+    return updateOrderItemStatus(itemId, payload.status as OrderStatus, vendorId);
+  }
+
+  if (orderItem.order.orderType !== OrderType.POS) {
+    if (orderItem.status !== OrderStatus.PENDING && orderItem.status !== OrderStatus.PROCESSING) {
+      throw new AppError(
+        status.BAD_REQUEST,
+        "This item can no longer be edited once it has shipped",
+      );
+    }
+  }
+
+  const newProductId = payload.productId ?? orderItem.productId;
+  const newProductVariantId =
+    payload.productVariantId !== undefined ? payload.productVariantId : orderItem.productVariantId;
+  const newQuantity = payload.quantity ?? orderItem.quantity;
+
+  const product = await prisma.product.findUnique({
+    where: { id: newProductId },
+    include: { variants: true },
+  });
+  if (!product) throw new AppError(status.NOT_FOUND, `Product not found: ${newProductId}`);
+  if (product.shopId !== shop.id) {
+    throw new AppError(status.FORBIDDEN, "You can only use your own shop's products");
+  }
+
+  let variant = null;
+  if (newProductVariantId) {
+    variant = product.variants.find((v) => v.id === newProductVariantId);
+    if (!variant) {
+      throw new AppError(status.NOT_FOUND, `Product variant not found: ${newProductVariantId}`);
+    }
+  }
+
+  const sellPrice = variant?.sellPrice ?? product.sellPrice;
+  const costPrice = variant?.purchasePrice ?? product.purchasePrice;
+
+  const updatedItem = await prisma.$transaction(async (tx) => {
+    // Restore stock for the old product/variant
+    if (orderItem.productVariantId) {
+      await tx.productVariant.update({
+        where: { id: orderItem.productVariantId },
+        data: { quantity: { increment: orderItem.quantity } },
+      });
+    }
+    await tx.product.update({
+      where: { id: orderItem.productId },
+      data: { stock: { increment: orderItem.quantity } },
+    });
+
+    // Re-validate stock for the new product/variant (post-restore)
+    if (newProductVariantId) {
+      const freshVariant = await tx.productVariant.findUnique({
+        where: { id: newProductVariantId },
+      });
+      if (!freshVariant || freshVariant.quantity < newQuantity) {
+        throw new AppError(
+          status.BAD_REQUEST,
+          `Insufficient stock for variation of product: ${product.name}`,
+        );
+      }
+      await tx.productVariant.update({
+        where: { id: newProductVariantId },
+        data: { quantity: { decrement: newQuantity } },
+      });
+      await tx.product.update({
+        where: { id: newProductId },
+        data: { stock: { decrement: newQuantity } },
+      });
+    } else {
+      const freshProduct = await tx.product.findUnique({ where: { id: newProductId } });
+      if (!freshProduct || freshProduct.stock < newQuantity) {
+        throw new AppError(status.BAD_REQUEST, `Insufficient stock for product: ${product.name}`);
+      }
+      await tx.product.update({
+        where: { id: newProductId },
+        data: { stock: { decrement: newQuantity } },
+      });
+    }
+
+    const itemTotal = sellPrice * newQuantity;
+    const platformEarning = itemTotal * COMMISSION_RATE;
+    const vendorEarning = itemTotal - platformEarning;
+
+    const item = await tx.orderItem.update({
+      where: { id: itemId },
+      data: {
+        productId: newProductId,
+        productVariantId: newProductVariantId,
+        quantity: newQuantity,
+        price: sellPrice,
+        costPrice,
+        vendorEarning,
+        platformEarning,
+        ...(payload.status !== undefined && { status: payload.status }),
+      },
+    });
+
+    // Recompute Order.totalAmount from all items on this order
+    const allItems = await tx.orderItem.findMany({ where: { orderId: orderItem.orderId } });
+    const itemsTotal = allItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const newTotalAmount = Math.max(
+      0,
+      itemsTotal + orderItem.order.shippingFee - orderItem.order.discountAmount,
+    );
+
+    await tx.order.update({
+      where: { id: orderItem.orderId },
+      data: {
+        totalAmount: newTotalAmount,
+        ...(payload.status !== undefined && { orderStatus: payload.status }),
+      },
+    });
+
+    return item;
+  });
+
+  if (payload.status !== undefined) {
+    const updatedOrder = await prisma.order.findUnique({ where: { id: orderItem.orderId } });
+    if (updatedOrder) {
+      await NotificationService.notifyOrderStatusChanged(updatedOrder, orderItem.order.orderStatus);
+    }
+  }
+
+  return updatedItem;
+};
+
 const getVendorOrders = async (vendorId: string, queryParams: IQueryParams) => {
   const shop = await prisma.shop.findUnique({ where: { vendorId } });
   if (!shop) throw new AppError(status.NOT_FOUND, "Shop not found");
@@ -421,4 +588,5 @@ export const OrderService = {
   getVendorOrders,
   deleteOrder,
   updateOrderItemStatus,
+  updateOrderItem,
 };

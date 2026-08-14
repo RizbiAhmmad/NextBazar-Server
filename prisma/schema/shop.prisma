@@ -21,6 +21,7 @@ model Shop {
   landingPages      LandingPage[]
   expenseCategories ExpenseCategory[]
   expenses          Expense[]
+  withdrawalRequests WithdrawalRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

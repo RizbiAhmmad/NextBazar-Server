@@ -1,0 +1,32 @@
+model WithdrawalRequest {
+  id     String           @id @default(uuid())
+  amount Float
+  status WithdrawalStatus @default(PENDING)
+
+  // Payout method snapshot (flat fields, mirrors Order's flat address fields)
+  payoutMethod          PayoutMethod
+  mobileBankingProvider MobileBankingProvider?
+  mobileNumber          String?
+
+  bankName          String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankBranch        String?
+  bankRoutingNumber String?
+
+  adminNote         String?
+  reviewedAt        DateTime?
+  reviewedByAdminId String?
+  reviewedByAdmin   User?    @relation("WithdrawalReviewedBy", fields: [reviewedByAdminId], references: [id])
+
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([status])
+  @@index([reviewedByAdminId])
+  @@map("withdrawal_requests")
+}

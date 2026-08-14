@@ -21,6 +21,7 @@ model User {
   cart          Cart?
   reviews       Review[]
   notifications Notification[]
+  reviewedWithdrawals WithdrawalRequest[] @relation("WithdrawalReviewedBy")
 
   @@unique([email])
   @@index([role])

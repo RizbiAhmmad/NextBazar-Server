@@ -126,6 +126,21 @@ const updateOrderItemStatus = catchAsync(async (req: Request, res: Response) => 
   });
 });
 
+const updateOrderItem = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderService.updateOrderItem(
+    req.params.id as string,
+    req.user.userId as string,
+    req.body,
+  );
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Order item updated successfully",
+    data: result,
+  });
+});
+
 export const OrderController = {
   createOrder,
   getAllOrders,
@@ -136,4 +151,5 @@ export const OrderController = {
   getVendorOrders,
   deleteOrder,
   updateOrderItemStatus,
+  updateOrderItem,
 };
