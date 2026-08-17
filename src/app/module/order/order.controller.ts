@@ -58,6 +58,21 @@ const getOrderById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const checkOrderFraud = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderService.checkOrderFraud(
+    req.params.id as string,
+    req.user.userId as string,
+    req.user.role as string,
+  );
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Fraud check fetched successfully",
+    data: result,
+  });
+});
+
 const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
   const result = await OrderService.updateOrderStatus(
     req.params.id as string,
@@ -152,4 +167,5 @@ export const OrderController = {
   deleteOrder,
   updateOrderItemStatus,
   updateOrderItem,
+  checkOrderFraud,
 };

@@ -42,6 +42,10 @@ interface EnvConfig {
     OPENROUTER_EMBEDDING_MODEL: string;
     OPENROUTER_LLM_MODEL: string;
   };
+  BDCOURIER: {
+    API_BASE_URL: string;
+    API_KEY: string;
+  };
   SENTRY_DSN?: string;
 }
 
@@ -74,6 +78,8 @@ const loadEnvVariables = (): EnvConfig => {
     "SUPER_ADMIN_PASSWORD",
     "SUPER_ADMIN_EMAIL",
     "SUPER_ADMIN_PASSWORD",
+    "BDCOURIER_API_BASE_URL",
+    "BDCOURIER_API_KEY",
   ];
 
   requiredEnvVariable.forEach((variable) => {
@@ -123,6 +129,10 @@ const loadEnvVariables = (): EnvConfig => {
       OPENROUTER_EMBEDDING_MODEL: process.env
         .OPENROUTER_EMBEDDING_MODEL as string,
       OPENROUTER_LLM_MODEL: process.env.OPENROUTER_LLM_MODEL as string,
+    },
+    BDCOURIER: {
+      API_BASE_URL: process.env.BDCOURIER_API_BASE_URL as string,
+      API_KEY: process.env.BDCOURIER_API_KEY as string,
     },
     SENTRY_DSN: process.env.SENTRY_DSN,
   };

@@ -81,4 +81,11 @@ router.get(
   OrderController.getOrderById,
 );
 
+// Courier fraud check (based on the order's phone number)
+router.get(
+  "/:id/fraud-check",
+  checkAuth(Role.USER, Role.SELLER, Role.ADMIN, Role.SUPER_ADMIN),
+  OrderController.checkOrderFraud,
+);
+
 export const OrderRoutes = router;

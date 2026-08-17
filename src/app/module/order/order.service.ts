@@ -6,6 +6,7 @@ import { IQueryParams } from "../../interfaces/query.interface";
 import { QueryBuilder } from "../../utils/QueryBuilder";
 import { generateOrderNumber } from "../../utils/generateOrderNumber";
 import { NotificationService } from "../notification/notification.service";
+import { BDCourierService } from "./bdCourier.service";
 
 const COMMISSION_RATE = 0.1; // 10% commission
 
@@ -302,6 +303,22 @@ const getOrderById = async (id: string, userId?: string, role?: string) => {
   return order;
 };
 
+const checkOrderFraud = async (id: string, userId?: string, role?: string) => {
+  const order = await getOrderById(id, userId, role);
+
+  const phone = order.phone?.trim();
+  const isValidPhone = !!phone && phone.toUpperCase() !== "N/A" && phone.length >= 10;
+
+  if (!isValidPhone) {
+    return { hasPhone: false as const };
+  }
+
+  const bdCourierService = new BDCourierService();
+  const report = await bdCourierService.checkPhone(phone);
+
+  return { hasPhone: true as const, phone, report };
+};
+
 const updateOrderStatus = async (id: string, statusValue: OrderStatus) => {
   const existingOrder = await prisma.order.findUnique({ where: { id } });
   if (!existingOrder) throw new AppError(status.NOT_FOUND, "Order not found");
@@ -589,4 +606,5 @@ export const OrderService = {
   deleteOrder,
   updateOrderItemStatus,
   updateOrderItem,
+  checkOrderFraud,
 };
