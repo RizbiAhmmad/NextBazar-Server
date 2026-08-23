@@ -26,6 +26,11 @@ export const updatePaymentStatusZodSchema = z.object({
   paymentStatus: z.enum(["PENDING", "PAID", "FAILED", "REFUNDED"]),
 });
 
+export const trackOrderZodSchema = z.object({
+  orderNumber: z.string().min(1, "Order number is required"),
+  phone: z.string().min(1, "Phone number is required"),
+});
+
 export const updateOrderItemZodSchema = z
   .object({
     status: z.enum(["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"]).optional(),

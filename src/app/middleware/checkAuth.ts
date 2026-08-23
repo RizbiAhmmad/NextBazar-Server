@@ -120,18 +120,34 @@ export const checkAuth =
         );
       }
 
-      // If req.user is not set by session, set it from JWT
+      // If req.user is not set by session, verify user in database
       if (!req.user) {
+        const userExists = await prisma.user.findUnique({
+          where: { id: verifiedToken.data!.userId },
+        });
+
+        if (
+          !userExists ||
+          userExists.isDeleted ||
+          userExists.status === UserStatus.BLOCKED ||
+          userExists.status === UserStatus.DELETED
+        ) {
+          throw new AppError(
+            status.UNAUTHORIZED,
+            "Unauthorized access! User no longer exists or is inactive.",
+          );
+        }
+
         req.user = {
-          userId: verifiedToken.data!.userId,
-          role: verifiedToken.data!.role as Role,
-          email: verifiedToken.data!.email,
+          userId: userExists.id,
+          role: userExists.role,
+          email: userExists.email,
         };
       }
 
       if (
         authRoles.length > 0 &&
-        !authRoles.includes(verifiedToken.data!.role as Role)
+        !authRoles.includes(req.user.role as Role)
       ) {
         throw new AppError(
           status.FORBIDDEN,

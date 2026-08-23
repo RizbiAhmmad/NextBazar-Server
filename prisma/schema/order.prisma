@@ -23,6 +23,7 @@ model Order {
   shop   Shop?       @relation(fields: [shopId], references: [id])
   items  OrderItem[]
   notifications Notification[]
+  returns OrderReturn[]
 
   discountAmount Float   @default(0)
   shippingFee    Float   @default(0)
@@ -54,6 +55,9 @@ model OrderItem {
   // Item fulfillment status (per vendor)
   status OrderStatus @default(PENDING)
 
+  // How much of `quantity` has been returned so far (remaining = quantity - returnedQuantity)
+  returnedQuantity Int @default(0)
+
   // Relations
   orderId          String
   order            Order           @relation(fields: [orderId], references: [id])
@@ -63,6 +67,7 @@ model OrderItem {
   productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id])
   shopId           String
   shop             Shop            @relation(fields: [shopId], references: [id])
+  returnItems      OrderReturnItem[]
 
   @@index([orderId])
   @@index([shopId])

@@ -303,6 +303,70 @@ const getOrderById = async (id: string, userId?: string, role?: string) => {
   return order;
 };
 
+// Public — used by the guest-safe order-confirmation ("Thank You") page and the
+// order-tracking page. No auth/ownership check, so only customer-facing fields are
+// selected — no vendorEarning/platformEarning/costPrice/userId/couponId etc.
+const PUBLIC_ORDER_SELECT = {
+  id: true,
+  orderNumber: true,
+  orderType: true,
+  orderStatus: true,
+  paymentStatus: true,
+  paymentMethod: true,
+  totalAmount: true,
+  discountAmount: true,
+  shippingFee: true,
+  fullName: true,
+  phone: true,
+  address: true,
+  district: true,
+  notes: true,
+  createdAt: true,
+  items: {
+    select: {
+      id: true,
+      quantity: true,
+      returnedQuantity: true,
+      price: true,
+      status: true,
+      product: { select: { id: true, name: true, images: true } },
+      productVariant: { select: { id: true, combination: true } },
+    },
+  },
+} as const;
+
+const getPublicOrderById = async (id: string) => {
+  const order = await prisma.order.findUnique({
+    where: { id },
+    select: PUBLIC_ORDER_SELECT,
+  });
+
+  if (!order) {
+    throw new AppError(status.NOT_FOUND, "Order not found");
+  }
+
+  return order;
+};
+
+// Public order tracking — requires BOTH orderNumber and phone to match. orderNumber
+// alone (e.g. "ONL-000123") is sequential/guessable, so phone acts as the second
+// factor that prevents enumerating other customers' orders.
+const trackOrder = async (orderNumber: string, phone: string) => {
+  const order = await prisma.order.findFirst({
+    where: { orderNumber: orderNumber.trim(), phone: phone.trim() },
+    select: PUBLIC_ORDER_SELECT,
+  });
+
+  if (!order) {
+    throw new AppError(
+      status.NOT_FOUND,
+      "No order found with that order number and phone number. Please check your details.",
+    );
+  }
+
+  return order;
+};
+
 const checkOrderFraud = async (id: string, userId?: string, role?: string) => {
   const order = await getOrderById(id, userId, role);
 
@@ -600,6 +664,8 @@ export const OrderService = {
   createOrder,
   getAllOrders,
   getOrderById,
+  getPublicOrderById,
+  trackOrder,
   updateOrderStatus,
   updatePaymentStatus,
   getVendorOrders,

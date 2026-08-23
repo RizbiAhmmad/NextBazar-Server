@@ -84,6 +84,20 @@ const notifyPaymentStatusChanged = async (
   });
 };
 
+const notifyOrderReturnProcessed = async (order: Order, refundAmount: number) => {
+  if (!order.userId) return;
+
+  await prisma.notification.create({
+    data: {
+      userId: order.userId,
+      orderId: order.id,
+      type: NotificationType.ORDER_RETURN_PROCESSED,
+      title: "Return Processed",
+      message: `A return of ৳${refundAmount.toFixed(2)} has been processed for your order #${order.orderNumber}.`,
+    },
+  });
+};
+
 const getMyNotifications = async (userId: string, limit: number) => {
   const [notifications, unreadCount] = await Promise.all([
     prisma.notification.findMany({
@@ -115,6 +129,7 @@ export const NotificationService = {
   notifyOrderPlaced,
   notifyOrderStatusChanged,
   notifyPaymentStatusChanged,
+  notifyOrderReturnProcessed,
   getMyNotifications,
   markAsRead,
   markAllAsRead,

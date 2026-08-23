@@ -21,6 +21,14 @@ const getCart = async (userId: string) => {
 
   // If no cart exists for the user, create one
   if (!cart) {
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!userExists) {
+      throw new AppError(status.NOT_FOUND, "User not found");
+    }
+
     cart = await prisma.cart.create({
       data: { userId },
       include: {

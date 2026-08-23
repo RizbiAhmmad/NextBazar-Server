@@ -2,9 +2,11 @@ import { Router } from "express";
 import { Role } from "../../../generated/prisma/enums";
 import { checkAuth } from "../../middleware/checkAuth";
 import { validateRequest } from "../../middleware/validateRequest";
+import { orderTrackRateLimiter } from "../../middleware/rateLimiter";
 import { OrderController } from "./order.controller";
 import {
   createOrderZodSchema,
+  trackOrderZodSchema,
   updateOrderItemZodSchema,
   updateOrderStatusZodSchema,
   updatePaymentStatusZodSchema,
@@ -72,6 +74,17 @@ router.delete(
   "/:id",
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
   OrderController.deleteOrder,
+);
+
+// Public — powers the guest-safe order-confirmation ("Thank You") page, no auth required
+router.get("/:id/public", OrderController.getPublicOrderById);
+
+// Public — order tracking by orderNumber + phone (no auth), rate-limited against brute force
+router.post(
+  "/track",
+  orderTrackRateLimiter,
+  validateRequest(trackOrderZodSchema),
+  OrderController.trackOrder,
 );
 
 // Get single order detail

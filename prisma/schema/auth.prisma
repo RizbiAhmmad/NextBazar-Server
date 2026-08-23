@@ -22,6 +22,7 @@ model User {
   reviews       Review[]
   notifications Notification[]
   reviewedWithdrawals WithdrawalRequest[] @relation("WithdrawalReviewedBy")
+  processedOrderReturns OrderReturn[] @relation("OrderReturnProcessedBy")
 
   @@unique([email])
   @@index([role])

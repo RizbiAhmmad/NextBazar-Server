@@ -2,6 +2,7 @@ enum NotificationType {
   ORDER_PLACED
   ORDER_STATUS_CHANGED
   PAYMENT_STATUS_CHANGED
+  ORDER_RETURN_PROCESSED
 }
 
 model Notification {

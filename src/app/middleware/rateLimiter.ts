@@ -41,3 +41,19 @@ export const guestOrderRateLimiter = rateLimit({
     res.status(options.statusCode).json(options.message);
   },
 });
+
+// Public order-tracking lookup (orderNumber + phone) — guards against brute-forcing
+// the phone number for a known/guessed order number
+export const orderTrackRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 15, // Limit each IP to 15 track attempts per 15 minutes
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many order lookup attempts, please try again later",
+  },
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).json(options.message);
+  },
+});

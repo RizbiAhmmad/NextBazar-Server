@@ -58,6 +58,31 @@ const getOrderById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getPublicOrderById = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderService.getPublicOrderById(req.params.id as string);
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Order details fetched successfully",
+    data: result,
+  });
+});
+
+const trackOrder = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderService.trackOrder(
+    req.body.orderNumber as string,
+    req.body.phone as string,
+  );
+
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "Order details fetched successfully",
+    data: result,
+  });
+});
+
 const checkOrderFraud = catchAsync(async (req: Request, res: Response) => {
   const result = await OrderService.checkOrderFraud(
     req.params.id as string,
@@ -161,6 +186,8 @@ export const OrderController = {
   getAllOrders,
   getMyOrders,
   getOrderById,
+  getPublicOrderById,
+  trackOrder,
   updateOrderStatus,
   updatePaymentStatus,
   getVendorOrders,
